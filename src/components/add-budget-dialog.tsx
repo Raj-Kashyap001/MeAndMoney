@@ -40,10 +40,20 @@ const budgetSchema = z.object({
 
 const categories: Category[] = ['Groceries', 'Dining', 'Entertainment', 'Utilities', 'Transportation', 'Healthcare', 'Shopping', 'Income', 'Transfer', 'Other'];
 
-export function AddBudgetDialog({ children, budget }: { children: React.ReactNode, budget?: Budget }) {
-  const [open, setOpen] = useState(false);
+type AddBudgetDialogProps = {
+  children: React.ReactNode;
+  budget?: Budget;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+};
+
+export function AddBudgetDialog({ children, budget, open: controlledOpen, onOpenChange: setControlledOpen }: AddBudgetDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const { toast } = useToast();
   const isEditMode = !!budget;
+
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = setControlledOpen ?? setInternalOpen;
 
   const form = useForm<z.infer<typeof budgetSchema>>({
     resolver: zodResolver(budgetSchema),
@@ -71,12 +81,13 @@ export function AddBudgetDialog({ children, budget }: { children: React.ReactNod
       description: `Successfully ${isEditMode ? 'updated' : 'added'} the "${values.category}" budget.`,
     });
     setOpen(false);
-    form.reset();
   };
+
+  const trigger = controlledOpen === undefined ? <DialogTrigger asChild>{children}</DialogTrigger> : children;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      {trigger}
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{isEditMode ? 'Adjust Budget' : 'Add New Budget'}</DialogTitle>

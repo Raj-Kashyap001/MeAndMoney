@@ -9,6 +9,7 @@ import {
   PiggyBank,
   Lightbulb,
   Settings,
+  Target,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -23,6 +24,7 @@ const navItems = [
   { href: '/dashboard/accounts', label: 'Accounts', icon: Wallet },
   { href: '/dashboard/transactions', label: 'Transactions', icon: ArrowRightLeft },
   { href: '/dashboard/budgets', label: 'Budgets', icon: PiggyBank },
+  { href: '/dashboard/goals', label: 'Goals', icon: Target },
   { href: '/dashboard/insights', label: 'Insights', icon: Lightbulb },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ];

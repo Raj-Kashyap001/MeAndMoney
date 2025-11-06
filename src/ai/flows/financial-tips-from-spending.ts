@@ -21,9 +21,20 @@ const FinancialTipsInputSchema = z.object({
 });
 export type FinancialTipsInput = z.infer<typeof FinancialTipsInputSchema>;
 
+const TipActionSchema = z.object({
+    type: z.enum(['navigate', 'open_dialog']),
+    payload: z.string().describe('The URL for navigation, or dialog to open (e.g., "add_budget", "add_goal"). For navigation, it could be a path like "/dashboard/budgets".'),
+}).optional();
+
+
+const TipSchema = z.object({
+  tip: z.string().describe('A personalized financial tip for the user.'),
+  action: TipActionSchema.describe('An optional action the user can take related to the tip.'),
+});
+
 const FinancialTipsOutputSchema = z.object({
   tips: z
-    .array(z.string())
+    .array(TipSchema)
     .describe('An array of personalized financial tips for the user.'),
 });
 export type FinancialTipsOutput = z.infer<typeof FinancialTipsOutputSchema>;
@@ -45,8 +56,17 @@ Spending Data: {{{spendingData}}}
 Monthly Income: {{{income}}}
 
 Provide a list of actionable tips to help the user reduce spending and improve their financial health. Focus on specific spending categories.
+For each tip, suggest a corresponding action if applicable.
+Actions can be:
+- Navigating to a relevant page (e.g., '/dashboard/budgets', '/dashboard/transactions?category=Shopping').
+- Suggesting to open a dialog (e.g., 'add_goal', 'add_budget').
 
-Format the output as a JSON array of strings.`, //Crucially, you MUST NOT attempt to directly call functions, use await keywords, or perform any complex logic _within_ the Handlebars template string.
+Example actions:
+- A tip about reviewing a budget for a specific category could have a navigation action to '/dashboard/budgets'.
+- A tip about setting a savings goal could have an action to open the 'add_goal' dialog.
+- A tip about cutting spending in a category could link to transactions: '/dashboard/transactions?category=Dining'.
+
+Return a JSON object with a "tips" array. Each object in the array should have a "tip" (string) and an optional "action" object with "type" and "payload".`,
 });
 
 const financialTipsFlow = ai.defineFlow(

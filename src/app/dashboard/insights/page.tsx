@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Lightbulb, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Lightbulb, Loader2, ArrowRight } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/page-header';
@@ -9,11 +10,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { getFinancialTips } from '@/app/actions';
 import { mockTransactions, mockBudgets } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
+import { AddBudgetDialog } from '@/components/add-budget-dialog';
+import { AddGoalDialog } from '@/components/add-goal-dialog';
+import type { FinancialTipsOutput } from '@/ai/flows/financial-tips-from-spending';
+
+type Tip = FinancialTipsOutput['tips'][0];
 
 export default function InsightsPage() {
-  const [tips, setTips] = useState<string[]>([]);
+  const [tips, setTips] = useState<Tip[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isAddBudgetOpen, setIsAddBudgetOpen] = useState(false);
+  const [isAddGoalOpen, setIsAddGoalOpen] = useState(false);
+
   const { toast } = useToast();
+  const router = useRouter();
 
   const handleGenerateTips = async () => {
     setIsLoading(true);
@@ -47,6 +57,21 @@ export default function InsightsPage() {
     }
   };
 
+  const handleAction = (tip: Tip) => {
+    if (!tip.action) return;
+
+    const { type, payload } = tip.action;
+    if (type === 'navigate') {
+      router.push(payload);
+    } else if (type === 'open_dialog') {
+      if (payload === 'add_budget') {
+        setIsAddBudgetOpen(true);
+      } else if (payload === 'add_goal') {
+        setIsAddGoalOpen(true);
+      }
+    }
+  };
+
   return (
     <>
       <PageHeader
@@ -63,7 +88,7 @@ export default function InsightsPage() {
         </Button>
       </PageHeader>
       <div className="flex items-center justify-center grow">
-        <Card className="w-full max-w-2xl">
+        <Card className="w-full max-w-3xl">
           <CardHeader>
             <CardTitle>Your Financial Tips</CardTitle>
             <CardDescription>
@@ -76,11 +101,18 @@ export default function InsightsPage() {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : tips.length > 0 ? (
-              <ul className="space-y-4">
+              <ul className="space-y-2">
                 {tips.map((tip, index) => (
-                  <li key={index} className="flex items-start gap-4">
-                    <span className="text-xl mt-1">💡</span>
-                    <p className="text-card-foreground">{tip}</p>
+                  <li key={index} className="flex items-center justify-between gap-4 p-3 rounded-lg border bg-card hover:bg-muted/50">
+                    <div className="flex items-start gap-4">
+                      <span className="text-xl mt-1">💡</span>
+                      <p className="text-card-foreground">{tip.tip}</p>
+                    </div>
+                    {tip.action && (
+                      <Button variant="ghost" size="sm" onClick={() => handleAction(tip)}>
+                        Take Action <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -92,6 +124,12 @@ export default function InsightsPage() {
           </CardContent>
         </Card>
       </div>
+      <AddBudgetDialog open={isAddBudgetOpen} onOpenChange={setIsAddBudgetOpen}>
+        <span />
+      </AddBudgetDialog>
+      <AddGoalDialog open={isAddGoalOpen} onOpenChange={setIsAddGoalOpen}>
+        <span />
+      </AddGoalDialog>
     </>
   );
 }
