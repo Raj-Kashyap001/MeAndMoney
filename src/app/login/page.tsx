@@ -20,7 +20,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/logo';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Info } from 'lucide-react';
 import Link from 'next/link';
 
 import {
@@ -36,6 +36,7 @@ import {
   sendEmailVerification,
 } from 'firebase/auth';
 import { doc, getFirestore } from 'firebase/firestore';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
@@ -75,6 +76,7 @@ export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(searchParams.get('mode') !== 'signup');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [verificationMessage, setVerificationMessage] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
@@ -89,6 +91,7 @@ export default function AuthPage() {
 
   useEffect(() => {
     setIsLogin(searchParams.get('mode') !== 'signup');
+    setVerificationMessage(null);
   }, [searchParams]);
 
   const formSchema = isLogin ? loginSchema : signupSchema;
@@ -102,16 +105,13 @@ export default function AuthPage() {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
+    setVerificationMessage(null);
     try {
       if (isLogin) {
         // Login
         const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
         if (!userCredential.user.emailVerified) {
-          toast({
-            variant: 'destructive',
-            title: 'Email Not Verified',
-            description: 'Please check your inbox to verify your email address.',
-          });
+          setVerificationMessage('Please check your inbox (and spam folder) to verify your email address.');
           await auth.signOut();
           setIsLoading(false);
           return;
@@ -199,6 +199,7 @@ export default function AuthPage() {
   const toggleForm = () => {
     const newIsLogin = !isLogin;
     setIsLogin(newIsLogin);
+    setVerificationMessage(null);
     const newPath = `/login?mode=${newIsLogin ? 'login' : 'signup'}`;
     router.replace(newPath, { scroll: false });
     form.reset();
@@ -255,7 +256,10 @@ export default function AuthPage() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="your@email.com" {...field} />
+                      <Input placeholder="your@email.com" {...field} onChange={(e) => {
+                        field.onChange(e);
+                        setVerificationMessage(null);
+                      }} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -275,12 +279,25 @@ export default function AuthPage() {
                       )}
                     </div>
                     <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
+                      <Input type="password" placeholder="••••••••" {...field} onChange={(e) => {
+                        field.onChange(e);
+                        setVerificationMessage(null);
+                      }} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
+              {verificationMessage && (
+                <Alert variant="default" className="bg-blue-50 border-blue-200 text-blue-800">
+                  <Info className="h-4 w-4 !text-blue-800" />
+                  <AlertDescription>
+                    {verificationMessage}
+                  </AlertDescription>
+                </Alert>
+              )}
+
               <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isLogin ? 'Login' : 'Sign Up'}
@@ -320,3 +337,5 @@ export default function AuthPage() {
     </div>
   );
 }
+
+    
