@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -31,6 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import type { Category } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
+import { useCurrency } from '@/components/currency-provider';
 
 
 interface DataTableProps<TData, TValue> {
@@ -46,6 +48,7 @@ export function DataTable<TData, TValue>({
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const { currency } = useCurrency();
 
   const table = useReactTable({
     data,
@@ -60,6 +63,9 @@ export function DataTable<TData, TValue>({
       sorting,
       columnFilters,
     },
+    meta: {
+      currency,
+    }
   });
   
   const categories: Category[] = ['Groceries', 'Dining', 'Entertainment', 'Utilities', 'Transportation', 'Healthcare', 'Shopping', 'Income', 'Transfer', 'Other'];
@@ -187,3 +193,5 @@ export function DataTable<TData, TValue>({
     </div>
   );
 }
+
+    

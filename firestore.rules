@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -9,8 +10,7 @@ service cloud.firestore {
 
     // Users can only manage their own profile.
     match /users/{userId} {
-      allow read, update, delete: if isOwner(userId);
-      allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.id == userId;
+      allow read, create, update, delete: if isOwner(userId);
     }
 
     // Users can only manage their own accounts.
@@ -22,23 +22,27 @@ service cloud.firestore {
     }
 
     // Users can only manage their own transactions.
-    // The `userId` field in the document must match the authenticated user's UID.
     match /users/{userId}/transactions/{transactionId} {
       allow read, list, delete: if isOwner(userId);
       allow create: if isOwner(userId) && request.resource.data.userId == userId;
       allow update: if isOwner(userId) && request.resource.data.userId == resource.data.userId; // Ensure userId is not changed
     }
 
-    // Users can only manage their own categories.
-    // The `userId` field in the document must match the authenticated user's UID.
-    match /users/{userId}/categories/{categoryId} {
+    // Users can only manage their own budgets.
+    match /users/{userId}/budgets/{budgetId} {
+      allow read, list, delete: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isOwner(userId) && request.resource.data.userId == resource.data.userId; // Ensure userId is not changed
+    }
+
+    // Users can only manage their own goals.
+    match /users/{userId}/goals/{goalId} {
       allow read, list, delete: if isOwner(userId);
       allow create: if isOwner(userId) && request.resource.data.userId == userId;
       allow update: if isOwner(userId) && request.resource.data.userId == resource.data.userId; // Ensure userId is not changed
     }
 
     // Users can only manage their own notifications.
-    // The `userId` field in the document must match the authenticated user's UID.
     match /users/{userId}/notifications/{notificationId} {
       allow read, list, delete: if isOwner(userId);
       allow create: if isOwner(userId) && request.resource.data.userId == userId;
@@ -46,3 +50,5 @@ service cloud.firestore {
     }
   }
 }
+
+    

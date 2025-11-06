@@ -1,3 +1,4 @@
+
 'use client';
 
 import { ColumnDef } from '@tanstack/react-table';
@@ -14,6 +15,11 @@ import { Badge } from '@/components/ui/badge';
 import type { Transaction, Category } from '@/lib/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { useCurrency } from '@/components/currency-provider';
+
+// This is a workaround because we can't use hooks in the column definition directly
+// We'll pass the currency to the cell function via meta property on the table
+// See src/components/transactions/data-table.tsx
 
 export const columns: ColumnDef<Transaction>[] = [
   {
@@ -58,12 +64,14 @@ export const columns: ColumnDef<Transaction>[] = [
         </div>
       );
     },
-    cell: ({ row }) => {
+    cell: ({ row, table }) => {
       const amount = parseFloat(row.getValue('amount'));
       const isExpense = row.original.type === 'expense';
+      const { currency } = table.options.meta as { currency: string };
+      
       return (
         <div className={cn('text-right font-medium', isExpense ? 'text-destructive' : 'text-green-600')}>
-          {formatCurrency(amount)}
+          {formatCurrency(amount, currency)}
         </div>
       );
     },
@@ -97,3 +105,5 @@ export const columns: ColumnDef<Transaction>[] = [
     },
   },
 ];
+
+    

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PlusCircle, Wallet, TrendingUp, TrendingDown, Target } from 'lucide-react';
@@ -27,10 +28,12 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebas
 import { collection, query, orderBy, limit } from 'firebase/firestore';
 import type { Account, Transaction, Budget } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useCurrency } from '@/components/currency-provider';
 
 export default function DashboardPage() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const { currency } = useCurrency();
 
   const accountsQuery = useMemoFirebase(() => 
     user ? query(collection(firestore, `users/${user.uid}/accounts`)) : null,
@@ -40,25 +43,18 @@ export default function DashboardPage() {
     user ? query(collection(firestore, `users/${user.uid}/transactions`), orderBy('date', 'desc'), limit(5)) : null,
     [user, firestore]
   );
-  // Budgets are not yet in Firestore, so we'll leave them as mock for now.
-  // const budgetsQuery = useMemoFirebase(() => 
-  //   user ? query(collection(firestore, `users/${user.uid}/budgets`)) : null,
-  //   [user, firestore]
-  // );
+  const budgetsQuery = useMemoFirebase(() => 
+    user ? query(collection(firestore, `users/${user.uid}/budgets`)) : null,
+    [user, firestore]
+  );
 
   const { data: accounts, isLoading: isLoadingAccounts } = useCollection<Account>(accountsQuery);
   const { data: transactions, isLoading: isLoadingTransactions } = useCollection<Transaction>(transactionsQuery);
-  
-  // TODO: Replace with live data when implemented
-  const mockBudgets: Budget[] = [
-    { id: 'bud1', category: 'Groceries', amount: 500, spent: 210.3 },
-    { id: 'bud2', category: 'Dining', amount: 300, spent: 250.7 },
-  ];
-  const isLoadingBudgets = false;
+  const { data: budgets, isLoading: isLoadingBudgets } = useCollection<Budget>(budgetsQuery);
 
   const totalBalance = accounts?.reduce((sum, acc) => sum + acc.balance, 0) ?? 0;
-  const totalBudget = mockBudgets.reduce((sum, budget) => sum + budget.amount, 0);
-  const totalSpent = mockBudgets.reduce((sum, budget) => sum + budget.spent, 0);
+  const totalBudget = budgets?.reduce((sum, budget) => sum + budget.amount, 0) ?? 0;
+  const totalSpent = budgets?.reduce((sum, budget) => sum + budget.spent, 0) ?? 0;
 
   const thisMonthIncome = transactions
     ?.filter(t => t.type === 'income' && new Date(t.date).getMonth() === new Date().getMonth())
@@ -101,10 +97,10 @@ export default function DashboardPage() {
         </AddTransactionDialog>
       </PageHeader>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Total Balance" value={formatCurrency(totalBalance)} icon={Wallet} description="Across all accounts" isLoading={isLoadingAccounts} />
-        <StatCard title="Income" value={formatCurrency(thisMonthIncome)} icon={TrendingUp} description="This month" isLoading={isLoadingTransactions} />
-        <StatCard title="Expenses" value={formatCurrency(thisMonthExpenses)} icon={TrendingDown} description="This month" isLoading={isLoadingTransactions} />
-        <StatCard title="Budget Progress" value={`${formatCurrency(totalSpent)} / ${formatCurrency(totalBudget)}`} icon={Target} description={`${(totalBudget > 0 ? (totalSpent / totalBudget * 100) : 0).toFixed(0)}% of budget used`} isLoading={isLoadingBudgets} />
+        <StatCard title="Total Balance" value={formatCurrency(totalBalance, currency)} icon={Wallet} description="Across all accounts" isLoading={isLoadingAccounts} />
+        <StatCard title="Income" value={formatCurrency(thisMonthIncome, currency)} icon={TrendingUp} description="This month" isLoading={isLoadingTransactions} />
+        <StatCard title="Expenses" value={formatCurrency(thisMonthExpenses, currency)} icon={TrendingDown} description="This month" isLoading={isLoadingTransactions} />
+        <StatCard title="Budget Progress" value={`${formatCurrency(totalSpent, currency)} / ${formatCurrency(totalBudget, currency)}`} icon={Target} description={`${(totalBudget > 0 ? (totalSpent / totalBudget * 100) : 0).toFixed(0)}% of budget used`} isLoading={isLoadingBudgets} />
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="lg:col-span-4">
@@ -138,7 +134,7 @@ export default function DashboardPage() {
                         <Badge variant="outline">{txn.category}</Badge>
                       </TableCell>
                       <TableCell className={`text-right font-medium ${txn.type === 'income' ? 'text-green-600' : ''}`}>
-                        {formatCurrency(txn.amount)}
+                        {formatCurrency(txn.amount, currency)}
                       </TableCell>
                     </TableRow>
                   ))
@@ -159,15 +155,15 @@ export default function DashboardPage() {
           <CardContent className="grid gap-4">
             {isLoadingBudgets ? (
               [...Array(2)].map((_,i) => <Skeleton key={i} className="h-10 w-full" />)
-            ) : mockBudgets.length > 0 ? (
-              mockBudgets.map((budget) => {
+            ) : budgets && budgets.length > 0 ? (
+              budgets.map((budget) => {
                 const progress = (budget.spent / budget.amount) * 100;
                 return (
                   <div key={budget.id}>
                     <div className="flex justify-between mb-1">
                       <span className="text-sm font-medium">{budget.category}</span>
                       <span className="text-sm text-muted-foreground">
-                        {formatCurrency(budget.spent)} / {formatCurrency(budget.amount)}
+                        {formatCurrency(budget.spent, currency)} / {formatCurrency(budget.amount, currency)}
                       </span>
                     </div>
                     <Progress value={progress} className="h-2" />
@@ -183,3 +179,5 @@ export default function DashboardPage() {
     </>
   );
 }
+
+    

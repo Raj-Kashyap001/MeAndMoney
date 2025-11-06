@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PlusCircle, Landmark, CreditCard, Wallet, MoreHorizontal } from 'lucide-react';
@@ -22,9 +23,10 @@ import { Badge } from '@/components/ui/badge';
 import { formatCurrency, cn } from '@/lib/utils';
 import { AddAccountDialog } from '@/components/add-account-dialog';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query } from 'firebase/firestore';
 import type { Account } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useCurrency } from '@/components/currency-provider';
 
 const AccountIcon = ({ type }: { type: 'bank' | 'card' | 'cash' }) => {
   const icons = {
@@ -38,6 +40,7 @@ const AccountIcon = ({ type }: { type: 'bank' | 'card' | 'cash' }) => {
 export default function AccountsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const { currency } = useCurrency();
 
   const accountsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -98,7 +101,7 @@ export default function AccountsPage() {
                     <Badge variant="secondary" className="capitalize">{account.type}</Badge>
                   </TableCell>
                   <TableCell className={cn("text-right font-mono", account.balance < 0 ? 'text-destructive' : 'text-emerald-600')}>
-                    {formatCurrency(account.balance)}
+                    {formatCurrency(account.balance, currency)}
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -130,3 +133,5 @@ export default function AccountsPage() {
     </>
   );
 }
+
+    

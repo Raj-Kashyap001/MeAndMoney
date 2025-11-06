@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PlusCircle } from 'lucide-react';
@@ -5,10 +6,14 @@ import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { mockBudgets } from '@/lib/data';
 import { formatCurrency } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { AddBudgetDialog } from '@/components/add-budget-dialog';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query } from 'firebase/firestore';
+import type { Budget } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useCurrency } from '@/components/currency-provider';
 
 const getProgressColor = (value: number) => {
   if (value > 90) return 'bg-destructive';
@@ -17,6 +22,17 @@ const getProgressColor = (value: number) => {
 };
 
 export default function BudgetsPage() {
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const { currency } = useCurrency();
+
+  const budgetsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(collection(firestore, `users/${user.uid}/budgets`));
+  }, [user, firestore]);
+
+  const { data: budgets, isLoading } = useCollection<Budget>(budgetsQuery);
+
   return (
     <>
       <PageHeader title="Budgets" description="Manage your monthly spending limits.">
@@ -28,25 +44,34 @@ export default function BudgetsPage() {
         </AddBudgetDialog>
       </PageHeader>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {mockBudgets.map((budget) => {
+        {isLoading && (
+            [...Array(3)].map((_, i) => (
+                <Card key={i}>
+                    <CardHeader><Skeleton className="h-6 w-3/4" /></CardHeader>
+                    <CardContent><Skeleton className="h-16 w-full" /></CardContent>
+                    <CardFooter><Skeleton className="h-10 w-full" /></CardFooter>
+                </Card>
+            ))
+        )}
+        {!isLoading && budgets && budgets.map((budget) => {
           const progress = (budget.spent / budget.amount) * 100;
           return (
             <Card key={budget.id}>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-lg font-medium">{budget.category}</CardTitle>
-                <CardDescription>{formatCurrency(budget.amount)}</CardDescription>
+                <CardDescription>{formatCurrency(budget.amount, currency)}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   <Progress value={progress} indicatorClassName={getProgressColor(progress)} />
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Spent</span>
-                    <span className="font-medium">{formatCurrency(budget.spent)}</span>
+                    <span className="font-medium">{formatCurrency(budget.spent, currency)}</span>
                   </div>
                    <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Remaining</span>
                     <span className={cn("font-medium", budget.amount - budget.spent < 0 ? 'text-destructive' : 'text-emerald-600' )}>
-                        {formatCurrency(budget.amount - budget.spent)}
+                        {formatCurrency(budget.amount - budget.spent, currency)}
                     </span>
                   </div>
                 </div>
@@ -59,7 +84,17 @@ export default function BudgetsPage() {
             </Card>
           )
         })}
+        {!isLoading && (!budgets || budgets.length === 0) && (
+            <Card className="md:col-span-2 lg:col-span-3 flex items-center justify-center h-64">
+                <div className="text-center">
+                    <h3 className="text-lg font-semibold">No Budgets Found</h3>
+                    <p className="text-muted-foreground">Create a budget to start tracking your spending.</p>
+                </div>
+            </Card>
+        )}
       </div>
     </>
   );
 }
+
+    

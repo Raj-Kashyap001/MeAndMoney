@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProfile": {
@@ -26,6 +27,11 @@
           "type": "string",
           "format": "uri",
           "description": "URL for the user's profile picture."
+        },
+        "currency": {
+          "type": "string",
+          "description": "The user's preferred currency code (e.g., 'USD').",
+          "default": "USD"
         }
       },
       "required": ["id", "email"]
@@ -113,6 +119,59 @@
       },
       "required": ["userId", "name"]
     },
+    "Budget": {
+      "title": "Budget",
+      "description": "Represents a user-defined budget for a category.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user who owns this budget."
+        },
+        "category": {
+          "type": "string",
+          "description": "The transaction category this budget applies to."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The total budgeted amount for the period."
+        },
+        "spent": {
+          "type": "number",
+          "description": "The amount spent in this category for the period."
+        }
+      },
+      "required": ["userId", "category", "amount", "spent"]
+    },
+    "Goal": {
+      "title": "Goal",
+      "description": "Represents a user's financial goal.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user who owns this goal."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the goal (e.g., 'Vacation Fund')."
+        },
+        "targetAmount": {
+          "type": "number",
+          "description": "The target amount to save for the goal."
+        },
+        "currentAmount": {
+          "type": "number",
+          "description": "The current amount saved towards the goal."
+        },
+        "deadline": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date by which the user wants to achieve the goal."
+        }
+      },
+      "required": ["userId", "name", "targetAmount", "currentAmount", "deadline"]
+    },
     "Notification": {
       "title": "Notification",
       "description": "Represents a notification for a user.",
@@ -163,9 +222,13 @@
       "schema": { "$ref": "#/entities/Transaction" },
       "description": "Stores all transactions for a specific user."
     },
-    "'/users/{userId}/categories/{categoryId}'": {
-      "schema": { "$ref": "#/entities/Category" },
-      "description": "Stores custom spending categories for a specific user."
+    "'/users/{userId}/budgets/{budgetId}'": {
+      "schema": { "$ref": "#/entities/Budget" },
+      "description": "Stores custom spending budgets for a specific user."
+    },
+    "'/users/{userId}/goals/{goalId}'": {
+      "schema": { "$ref": "#/entities/Goal" },
+      "description": "Stores financial goals for a specific user."
     },
     "'/users/{userId}/notifications/{notificationId}'": {
       "schema": { "$ref": "#/entities/Notification" },
@@ -173,3 +236,5 @@
     }
   }
 }
+
+    

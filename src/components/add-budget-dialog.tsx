@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -32,13 +33,16 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import type { Budget, Category } from '@/lib/types';
+import { useUser, useFirestore, addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
+
 
 const budgetSchema = z.object({
   category: z.string({ required_error: 'Please select a category.' }),
   amount: z.coerce.number().positive({ message: 'Amount must be positive.' }),
 });
 
-const categories: Category[] = ['Groceries', 'Dining', 'Entertainment', 'Utilities', 'Transportation', 'Healthcare', 'Shopping', 'Income', 'Transfer', 'Other'];
+const categories: Category[] = ['Groceries', 'Dining', 'Entertainment', 'Utilities', 'Transportation', 'Healthcare', 'Shopping', 'Other'];
 
 type AddBudgetDialogProps = {
   children: React.ReactNode;
@@ -50,6 +54,8 @@ type AddBudgetDialogProps = {
 export function AddBudgetDialog({ children, budget, open: controlledOpen, onOpenChange: setControlledOpen }: AddBudgetDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const { toast } = useToast();
+  const { user } = useUser();
+  const firestore = useFirestore();
   const isEditMode = !!budget;
 
   const open = controlledOpen ?? internalOpen;
@@ -60,22 +66,42 @@ export function AddBudgetDialog({ children, budget, open: controlledOpen, onOpen
   });
   
   useEffect(() => {
-    if (budget && open) {
-      form.reset({
-        category: budget.category,
-        amount: budget.amount,
-      });
-    } else if (!budget && open) {
-      form.reset({
-        category: undefined,
-        amount: 0,
-      });
+    if (open) {
+        if (isEditMode && budget) {
+            form.reset({
+                category: budget.category,
+                amount: budget.amount,
+            });
+        } else {
+             form.reset({
+                category: undefined,
+                amount: 0,
+            });
+        }
     }
-  }, [budget, open, form]);
+  }, [budget, open, form, isEditMode]);
 
 
   const onSubmit = (values: z.infer<typeof budgetSchema>) => {
-    console.log(values);
+    if (!user) {
+        toast({ variant: 'destructive', title: 'Not authenticated' });
+        return;
+    }
+    
+    const budgetData = {
+        ...values,
+        userId: user.uid,
+        spent: isEditMode ? budget.spent : 0,
+    };
+    
+    if (isEditMode && budget?.id) {
+        const budgetDocRef = doc(firestore, `users/${user.uid}/budgets`, budget.id);
+        setDocumentNonBlocking(budgetDocRef, budgetData, { merge: true });
+    } else {
+        const budgetsCollection = collection(firestore, `users/${user.uid}/budgets`);
+        addDocumentNonBlocking(budgetsCollection, budgetData);
+    }
+    
     toast({
       title: isEditMode ? 'Budget Updated' : 'Budget Added',
       description: `Successfully ${isEditMode ? 'updated' : 'added'} the "${values.category}" budget.`,
@@ -143,3 +169,5 @@ export function AddBudgetDialog({ children, budget, open: controlledOpen, onOpen
     </Dialog>
   );
 }
+
+    

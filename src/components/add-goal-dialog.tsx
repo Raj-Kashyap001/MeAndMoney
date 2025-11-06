@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -30,6 +31,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { Goal } from '@/lib/types';
+import { useUser, useFirestore, addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 
 const goalSchema = z.object({
   name: z.string().min(2, { message: 'Goal name must be at least 2 characters.' }),
@@ -49,6 +52,9 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
   const [internalOpen, setInternalOpen] = useState(false);
   const { toast } = useToast();
   const isEditMode = !!goal;
+  const { user } = useUser();
+  const firestore = useFirestore();
+
 
   const open = controlledOpen ?? internalOpen;
   const setOpen = setControlledOpen ?? setInternalOpen;
@@ -71,14 +77,32 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
           name: '',
           targetAmount: 0,
           currentAmount: 0,
-          deadline: new Date(),
+          deadline: undefined,
         });
       }
     }
   }, [goal, open, form]);
 
   const onSubmit = (values: z.infer<typeof goalSchema>) => {
-    console.log(values);
+    if (!user) {
+      toast({ variant: 'destructive', title: 'Not authenticated' });
+      return;
+    }
+    
+    const goalData = {
+      ...values,
+      deadline: values.deadline.toISOString(),
+      userId: user.uid,
+    };
+
+    if (isEditMode && goal?.id) {
+      const goalDocRef = doc(firestore, `users/${user.uid}/goals`, goal.id);
+      setDocumentNonBlocking(goalDocRef, goalData, { merge: true });
+    } else {
+      const goalsCollection = collection(firestore, `users/${user.uid}/goals`);
+      addDocumentNonBlocking(goalsCollection, goalData);
+    }
+    
     toast({
       title: isEditMode ? 'Goal Updated' : 'Goal Added',
       description: `Successfully ${isEditMode ? 'updated' : 'added'} the "${values.name}" goal.`,
@@ -176,3 +200,5 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
     </Dialog>
   );
 }
+
+    

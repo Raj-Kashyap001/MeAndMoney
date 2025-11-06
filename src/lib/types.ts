@@ -1,12 +1,16 @@
-export type User = {
+
+export type UserProfile = {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
-  avatarUrl?: string;
+  photoURL?: string;
+  currency?: string;
 };
 
 export type Account = {
   id: string;
+  userId: string;
   name: string;
   type: 'bank' | 'card' | 'cash';
   balance: number;
@@ -27,6 +31,7 @@ export type Category =
 
 export type Transaction = {
   id: string;
+  userId: string;
   date: string;
   description: string;
   amount: number;
@@ -37,6 +42,7 @@ export type Transaction = {
 
 export type Budget = {
   id: string;
+  userId: string;
   category: Category;
   amount: number;
   spent: number;
@@ -44,8 +50,20 @@ export type Budget = {
 
 export type Goal = {
   id: string;
+  userId: string;
   name: string;
   targetAmount: number;
   currentAmount: number;
   deadline: string;
 };
+
+export type Notification = {
+  id: string;
+  userId: string;
+  message: string;
+  type: 'info' | 'warning' | 'alert' | 'ai';
+  isRead: boolean;
+  createdAt: string;
+};
+
+    

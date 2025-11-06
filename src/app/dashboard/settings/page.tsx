@@ -3,7 +3,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Upload, User, Trash2, KeyRound, Mail, LogOut, ShieldAlert, Pencil, X, Check } from 'lucide-react';
+import { Upload, User, Trash2, KeyRound, Mail, LogOut, ShieldAlert, Pencil, X, Check, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/page-header';
 import {
@@ -19,14 +19,32 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { useAuth, useUser, setDocumentNonBlocking, useFirestore } from '@/firebase';
+import { useAuth, useUser, setDocumentNonBlocking, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
+import type { UserProfile } from '@/lib/types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useCurrency } from '@/components/currency-provider';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const currencies = [
+  { code: 'USD', name: 'United States Dollar' },
+  { code: 'EUR', name: 'Euro' },
+  { code: 'JPY', name: 'Japanese Yen' },
+  { code: 'GBP', name: 'British Pound Sterling' },
+  { code: 'AUD', name: 'Australian Dollar' },
+  { code: 'CAD', name: 'Canadian Dollar' },
+  { code: 'INR', name: 'Indian Rupee' },
+];
 
 export default function SettingsPage() {
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading: isAuthUserLoading } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
+  const { currency, setCurrency } = useCurrency();
   
+  const userDocRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
+
   const [isEditingName, setIsEditingName] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -37,16 +55,12 @@ export default function SettingsPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!isUserLoading && user) {
-        // Here you would fetch the user profile from Firestore
-        // For now, we'll parse from display name
-        setAvatarUrl(user.photoURL || undefined);
-        const name = user.displayName || 'User';
-        const nameParts = name.split(' ');
-        setFirstName(nameParts[0] || '');
-        setLastName(nameParts.slice(1).join(' ') || '');
+    if (userProfile) {
+        setAvatarUrl(userProfile.photoURL || user?.photoURL || undefined);
+        setFirstName(userProfile.firstName || '');
+        setLastName(userProfile.lastName || '');
     }
-  }, [user, isUserLoading]);
+  }, [userProfile, user]);
 
   const handleLogout = async () => {
     try {
@@ -67,35 +81,26 @@ export default function SettingsPage() {
 
   const handleNameEditToggle = () => {
     if (isEditingName) {
-      // Reset to original name if cancelling
-      if(user) {
-        const name = user.displayName || '';
-        const nameParts = name.split(' ');
-        setFirstName(nameParts[0] || '');
-        setLastName(nameParts.slice(1).join(' ') || '');
+      if(userProfile) {
+        setFirstName(userProfile.firstName || '');
+        setLastName(userProfile.lastName || '');
       }
     }
     setIsEditingName(!isEditingName);
   };
   
   const handleNameSave = () => {
-    if (user) {
+    if (userDocRef) {
       const newName = `${firstName} ${lastName}`.trim();
       if(newName) {
-        const userDocRef = doc(firestore, 'users', user.uid);
-        
         setDocumentNonBlocking(userDocRef, {
             firstName,
             lastName
         }, { merge: true });
 
-        // This doesn't update auth.currentUser displayName immediately,
-        // but we'll reflect it in the UI optimistically.
-        // For a full solution, you'd re-fetch the user profile.
-        
         toast({
           title: 'Profile Updated',
-          description: 'Your profile has been successfully changed.',
+          description: 'Your name has been successfully changed.',
         });
         setIsEditingName(false);
       } else {
@@ -133,16 +138,25 @@ export default function SettingsPage() {
   const removePicture = () => {
     setAvatarUrl(undefined);
   };
+  
+  const handleCurrencyChange = (newCurrency: string) => {
+    if (userDocRef) {
+      setCurrency(newCurrency);
+      setDocumentNonBlocking(userDocRef, { currency: newCurrency }, { merge: true });
+      toast({
+        title: 'Currency Updated',
+        description: `Your currency has been set to ${newCurrency}.`,
+      });
+    }
+  };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase();
+
+  const getInitials = (fName: string, lName: string) => {
+    return `${fName[0] || ''}${lName[0] || ''}`.toUpperCase();
   };
   
   const displayName = `${firstName} ${lastName}`.trim();
+  const isLoading = isAuthUserLoading || isProfileLoading;
 
   return (
     <>
@@ -157,86 +171,125 @@ export default function SettingsPage() {
              <CardTitle>Profile Details</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col md:flex-row items-start gap-6">
-              <div className="flex flex-col items-center gap-4 w-full md:w-48">
-                <Avatar className="h-24 w-24">
-                  <AvatarImage src={avatarUrl} alt={displayName} />
-                  <AvatarFallback className="text-3xl">
-                    {user ? getInitials(displayName) : <User />}
-                  </AvatarFallback>
-                </Avatar>
-                {isEditingName && (
-                  <div className="flex flex-col gap-2 w-full">
-                    <Button
-                      variant="outline"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <Upload className="mr-2 h-4 w-4" />
-                      Change Image
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="text-destructive hover:bg-transparent hover:text-destructive hover:border-destructive border border-transparent"
-                      onClick={removePicture}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Remove
-                    </Button>
-                    <Input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handlePictureUpload}
-                      className="hidden"
-                      accept="image/png, image/jpeg, image/gif"
-                    />
-                  </div>
-                )}
-              </div>
+             {isLoading ? (
+                <div className="flex flex-col md:flex-row items-start gap-6">
+                    <Skeleton className="h-24 w-24 rounded-full" />
+                    <Separator orientation="vertical" className="h-auto hidden md:block" />
+                    <div className="flex-1 w-full space-y-2">
+                        <Skeleton className="h-8 w-48" />
+                        <Skeleton className="h-5 w-64" />
+                    </div>
+                </div>
+            ) : (
+                <div className="flex flex-col md:flex-row items-start gap-6">
+                <div className="flex flex-col items-center gap-4 w-full md:w-48">
+                    <Avatar className="h-24 w-24">
+                    <AvatarImage src={avatarUrl} alt={displayName} />
+                    <AvatarFallback className="text-3xl">
+                        {user ? getInitials(firstName, lastName) : <User />}
+                    </AvatarFallback>
+                    </Avatar>
+                    {isEditingName && (
+                    <div className="flex flex-col gap-2 w-full">
+                        <Button
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        >
+                        <Upload className="mr-2 h-4 w-4" />
+                        Change Image
+                        </Button>
+                        <Button
+                        variant="ghost"
+                        className="text-destructive hover:bg-transparent hover:text-destructive hover:border-destructive border border-transparent"
+                        onClick={removePicture}
+                        >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Remove
+                        </Button>
+                        <Input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handlePictureUpload}
+                        className="hidden"
+                        accept="image/png, image/jpeg, image/gif"
+                        />
+                    </div>
+                    )}
+                </div>
 
-              <Separator orientation="vertical" className="h-auto hidden md:block" />
-              <Separator className="md:hidden"/>
+                <Separator orientation="vertical" className="h-auto hidden md:block" />
+                <Separator className="md:hidden"/>
 
-              <div className="flex-1 w-full">
-                {isEditingName ? (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="firstName">First Name</Label>
-                        <Input id="firstName" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="First Name"/>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="lastName">Last Name</Label>
-                        <Input id="lastName" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Last Name"/>
-                      </div>
+                <div className="flex-1 w-full">
+                    {isEditingName ? (
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="firstName">First Name</Label>
+                            <Input id="firstName" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="First Name"/>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="lastName">Last Name</Label>
+                            <Input id="lastName" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Last Name"/>
+                        </div>
+                        </div>
+                        <p className="text-sm text-muted-foreground pt-2">
+                        We support PNGs, JPEGs and GIFs under 2MB.
+                        </p>
+                        <div className="flex justify-end gap-2 pt-4">
+                        <Button variant="ghost" size="sm" onClick={handleNameEditToggle}>
+                            <X className="mr-2 h-4 w-4" />
+                            Cancel
+                        </Button>
+                        <Button size="sm" onClick={handleNameSave}>
+                            <Check className="mr-2 h-4 w-4" />
+                            Save Changes
+                        </Button>
+                        </div>
                     </div>
-                     <p className="text-sm text-muted-foreground pt-2">
-                      We support PNGs, JPEGs and GIFs under 2MB.
-                    </p>
-                    <div className="flex justify-end gap-2 pt-4">
-                      <Button variant="ghost" size="sm" onClick={handleNameEditToggle}>
-                        <X className="mr-2 h-4 w-4" />
-                        Cancel
-                      </Button>
-                      <Button size="sm" onClick={handleNameSave}>
-                        <Check className="mr-2 h-4 w-4" />
-                        Save Changes
-                      </Button>
+                    ) : (
+                    <div className="flex items-start justify-between">
+                        <div>
+                        <Label>Name</Label>
+                        <h3 className="text-2xl font-bold mt-1">{displayName}</h3>
+                        <p className="text-muted-foreground">{user?.email}</p>
+                        </div>
+                        <Button variant="outline" size="icon" onClick={handleNameEditToggle}>
+                        <Pencil className="h-4 w-4" />
+                        <span className="sr-only">Edit Name</span>
+                        </Button>
                     </div>
-                  </div>
-                ) : (
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <Label>Name</Label>
-                      <h3 className="text-2xl font-bold mt-1">{displayName}</h3>
-                      <p className="text-muted-foreground">{user?.email}</p>
-                    </div>
-                    <Button variant="outline" size="icon" onClick={handleNameEditToggle}>
-                      <Pencil className="h-4 w-4" />
-                      <span className="sr-only">Edit Name</span>
-                    </Button>
-                  </div>
-                )}
+                    )}
+                </div>
+                </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Display Settings Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Display</CardTitle>
+            <CardDescription>Manage your display preferences.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex-shrink min-w-0">
+                <Label htmlFor="currency-select" className='flex items-center gap-2'><Globe className='w-4 h-4' /> Currency</Label>
+                <p className="text-muted-foreground text-sm pt-1">Select your preferred currency for display.</p>
               </div>
+              <Select value={currency} onValueChange={handleCurrencyChange}>
+                <SelectTrigger className="w-[180px]" id="currency-select">
+                  <SelectValue placeholder="Select currency" />
+                </SelectTrigger>
+                <SelectContent>
+                  {currencies.map((c) => (
+                    <SelectItem key={c.code} value={c.code}>
+                      {c.code} - {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
@@ -323,3 +376,5 @@ export default function SettingsPage() {
     </>
   );
 }
+
+    
