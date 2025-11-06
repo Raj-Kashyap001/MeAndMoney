@@ -32,9 +32,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import type { Budget, Category } from '@/lib/types';
-import { useUser, useFirestore, addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import type { Budget } from '@/lib/types';
+import { useUser, useFirestore, addDocumentNonBlocking, setDocumentNonBlocking, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, doc } from 'firebase/firestore';
 
 
 const budgetSchema = z.object({
@@ -42,7 +42,7 @@ const budgetSchema = z.object({
   amount: z.coerce.number().positive({ message: 'Amount must be positive.' }),
 });
 
-const categories: Category[] = ['Groceries', 'Dining', 'Entertainment', 'Utilities', 'Transportation', 'Healthcare', 'Shopping', 'Other'];
+const ALL_CATEGORIES: string[] = ['Groceries', 'Dining', 'Entertainment', 'Utilities', 'Transportation', 'Healthcare', 'Shopping', 'Income', 'Transfer', 'Other', 'Savings'];
 
 type AddBudgetDialogProps = {
   children: React.ReactNode;
@@ -60,6 +60,13 @@ export function AddBudgetDialog({ children, budget, open: controlledOpen, onOpen
 
   const open = controlledOpen ?? internalOpen;
   const setOpen = setControlledOpen ?? setInternalOpen;
+  
+  const budgetsQuery = useMemoFirebase(() => 
+    user ? query(collection(firestore, `users/${user.uid}/budgets`)) : null,
+    [user, firestore]
+  );
+  const { data: existingBudgets } = useCollection<Budget>(budgetsQuery);
+
 
   const form = useForm<z.infer<typeof budgetSchema>>({
     resolver: zodResolver(budgetSchema),
@@ -81,6 +88,9 @@ export function AddBudgetDialog({ children, budget, open: controlledOpen, onOpen
     }
   }, [budget, open, form, isEditMode]);
 
+  const availableCategories = ALL_CATEGORIES.filter(cat => 
+    !existingBudgets?.some(b => b.category === cat) || (isEditMode && budget?.category === cat)
+  );
 
   const onSubmit = (values: z.infer<typeof budgetSchema>) => {
     if (!user) {
@@ -88,9 +98,15 @@ export function AddBudgetDialog({ children, budget, open: controlledOpen, onOpen
         return;
     }
     
+    if (!isEditMode && existingBudgets?.some(b => b.category === values.category)) {
+      toast({ variant: 'destructive', title: 'Budget Exists', description: `A budget for "${values.category}" already exists.` });
+      return;
+    }
+    
     const budgetData = {
-        ...values,
         userId: user.uid,
+        category: values.category,
+        amount: values.amount,
         spent: isEditMode ? budget.spent : 0,
     };
     
@@ -129,14 +145,14 @@ export function AddBudgetDialog({ children, budget, open: controlledOpen, onOpen
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Category</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isEditMode}>
+                  <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {categories.map((cat) => (
+                      {availableCategories.map((cat) => (
                         <SelectItem key={cat} value={cat}>
                           {cat}
                         </SelectItem>
@@ -169,5 +185,3 @@ export function AddBudgetDialog({ children, budget, open: controlledOpen, onOpen
     </Dialog>
   );
 }
-
-    

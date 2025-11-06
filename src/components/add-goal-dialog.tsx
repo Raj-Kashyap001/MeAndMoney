@@ -39,7 +39,11 @@ const goalSchema = z.object({
   targetAmount: z.coerce.number().positive({ message: 'Target amount must be positive.' }),
   currentAmount: z.coerce.number().min(0, { message: 'Current amount cannot be negative.' }),
   deadline: z.date({ required_error: 'A deadline is required.' }),
+}).refine(data => data.currentAmount <= data.targetAmount, {
+    message: "Current amount cannot be greater than the target amount.",
+    path: ["currentAmount"],
 });
+
 
 type AddGoalDialogProps = {
   children: React.ReactNode;
@@ -131,7 +135,7 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
                 <FormItem>
                   <FormLabel>Goal Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Emergency Fund" {...field} disabled={isEditMode} />
+                    <Input placeholder="e.g., Emergency Fund" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -200,5 +204,3 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
     </Dialog>
   );
 }
-
-    

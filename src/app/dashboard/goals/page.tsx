@@ -1,7 +1,8 @@
 
 'use client';
 
-import { PlusCircle } from 'lucide-react';
+import { useState } from 'react';
+import { PlusCircle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,16 +10,23 @@ import { Progress } from '@/components/ui/progress';
 import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { AddGoalDialog } from '@/components/add-goal-dialog';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from '@/firebase';
+import { collection, query, doc } from 'firebase/firestore';
 import type { Goal } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCurrency } from '@/components/currency-provider';
+import { useToast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 export default function GoalsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { currency } = useCurrency();
+  const { toast } = useToast();
+
+  const [goalToEdit, setGoalToEdit] = useState<Goal | undefined>(undefined);
+  const [goalToDelete, setGoalToDelete] = useState<Goal | null>(null);
+  const [isAddGoalOpen, setIsAddGoalOpen] = useState(false);
 
   const goalsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -27,15 +35,45 @@ export default function GoalsPage() {
 
   const { data: goals, isLoading } = useCollection<Goal>(goalsQuery);
 
+  const handleEdit = (goal: Goal) => {
+    setGoalToEdit(goal);
+    setIsAddGoalOpen(true);
+  };
+
+  const handleAddNew = () => {
+    setGoalToEdit(undefined);
+    setIsAddGoalOpen(true);
+  };
+  
+  const handleDelete = (goal: Goal) => {
+    if (!user) return;
+    const goalDocRef = doc(firestore, `users/${user.uid}/goals`, goal.id);
+    deleteDocumentNonBlocking(goalDocRef);
+    toast({
+      title: "Goal Deleted",
+      description: `The "${goal.name}" goal has been deleted.`,
+    });
+    setGoalToDelete(null);
+  };
+
+  const handleContribute = (goal: Goal) => {
+    // This is a placeholder for a more complex contribution flow
+    // For now, we'll just open the edit dialog
+    handleEdit(goal);
+    toast({
+        title: 'Contribute to Goal',
+        description: 'You can add to your saved amount here.'
+    });
+  }
+
+
   return (
     <>
       <PageHeader title="Goals" description="Track your progress towards your financial goals.">
-        <AddGoalDialog>
-          <Button>
+        <Button onClick={handleAddNew}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Add Goal
-          </Button>
-        </AddGoalDialog>
+        </Button>
       </PageHeader>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {isLoading && (
@@ -65,10 +103,11 @@ export default function GoalsPage() {
                 </div>
               </CardContent>
               <CardFooter className="gap-2">
-                <AddGoalDialog goal={goal}>
-                   <Button variant="outline" size="sm" className="w-full">Adjust Goal</Button>
-                </AddGoalDialog>
-                 <Button variant="outline" size="sm" className="w-full">Contribute</Button>
+                <Button variant="outline" size="sm" className="w-full" onClick={() => handleEdit(goal)}>Adjust Goal</Button>
+                <Button variant="outline" size="sm" className="w-full" onClick={() => handleContribute(goal)}>Contribute</Button>
+                <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setGoalToDelete(goal)}>
+                    <Trash2 className="h-4 w-4" />
+                </Button>
               </CardFooter>
             </Card>
           )
@@ -82,8 +121,32 @@ export default function GoalsPage() {
             </Card>
         )}
       </div>
+
+      <AddGoalDialog 
+        open={isAddGoalOpen}
+        onOpenChange={setIsAddGoalOpen}
+        goal={goalToEdit}
+      >
+        <span />
+      </AddGoalDialog>
+
+      <AlertDialog open={!!goalToDelete} onOpenChange={(open) => !open && setGoalToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the goal for {'"'}
+              {goalToDelete?.name}{'"'}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => goalToDelete && handleDelete(goalToDelete)} className="bg-destructive hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
-
-    
