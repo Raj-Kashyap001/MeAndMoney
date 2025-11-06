@@ -92,7 +92,7 @@ export default function DashboardLayout({
                   className="w-full appearance-none bg-background pl-8 shadow-none md:w-2/3 lg:w-1/3"
                 />
               </div>
-            </form> taping
+            </form>
           </div>
           <UserNav />
         </header>
