@@ -1,4 +1,4 @@
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Wallet, TrendingUp, TrendingDown, Target } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -43,7 +43,7 @@ export default function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Balance</CardTitle>
-            <span className="text-2xl">💰</span>
+            <Wallet className="h-6 w-6 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(totalBalance)}</div>
@@ -53,7 +53,7 @@ export default function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Income</CardTitle>
-            <span className="text-2xl text-green-500">📈</span>
+            <TrendingUp className="h-6 w-6 text-green-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(2500)}</div>
@@ -63,7 +63,7 @@ export default function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Expenses</CardTitle>
-            <span className="text-2xl text-red-500">📉</span>
+            <TrendingDown className="h-6 w-6 text-red-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(-432.39)}</div>
@@ -73,7 +73,7 @@ export default function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Budget Progress</CardTitle>
-            <span className="text-2xl">🎯</span>
+            <Target className="h-6 w-6 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(totalSpent)} / {formatCurrency(totalBudget)}</div>

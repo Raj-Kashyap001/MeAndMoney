@@ -1,4 +1,4 @@
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Landmark, CreditCard, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,11 +24,11 @@ import { cn } from '@/lib/utils';
 
 const AccountIcon = ({ type }: { type: 'bank' | 'card' | 'cash' }) => {
   const icons = {
-    bank: '🏛️',
-    card: '💳',
-    cash: '💵',
+    bank: <Landmark className="h-6 w-6 text-muted-foreground" />,
+    card: <CreditCard className="h-6 w-6 text-muted-foreground" />,
+    cash: <Wallet className="h-6 w-6 text-muted-foreground" />,
   };
-  return <span className="text-2xl">{icons[type]}</span>;
+  return <div className="p-2 bg-muted rounded-md">{icons[type]}</div>;
 };
 
 export default function AccountsPage() {
