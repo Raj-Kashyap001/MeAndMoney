@@ -1,3 +1,10 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "login-bg",
+      "description": "Abstract background for login page",
+      "imageUrl": "https://images.unsplash.com/photo-1717994818194-5760d533cab6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8ZmluYW5jZSUyMGFic3RyYWN0fGVufDB8fHx8MTc2MjMxMTQwMHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "finance abstract"
+    }
+  ]
 }
