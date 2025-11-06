@@ -46,7 +46,7 @@ export default function BudgetsPage() {
   const budgetsQuery = useMemoFirebase(() => {
     if (!user) return null;
     return query(collection(firestore, `users/${user.uid}/budgets`));
-  }, [user, firestore]);
+  }, [firestore, user]);
 
   const { data: budgets, isLoading } = useCollection<Budget>(budgetsQuery);
 

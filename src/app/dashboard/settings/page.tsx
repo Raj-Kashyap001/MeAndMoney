@@ -45,7 +45,7 @@ export default function SettingsPage() {
   const { currency, setCurrency } = useCurrency();
   const { theme, setTheme } = useTheme();
   
-  const userDocRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
+  const userDocRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
   const [isEditingName, setIsEditingName] = useState(false);
@@ -435,5 +435,3 @@ export default function SettingsPage() {
     </>
   );
 }
-
-    

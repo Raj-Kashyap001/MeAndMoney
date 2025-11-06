@@ -30,15 +30,15 @@ export default function DashboardPage() {
 
   const accountsQuery = useMemoFirebase(() =>
     user ? query(collection(firestore, `users/${user.uid}/accounts`)) : null,
-    [user, firestore]
+    [firestore, user]
   );
   const transactionsQuery = useMemoFirebase(() =>
     user ? query(collection(firestore, `users/${user.uid}/transactions`), where('date', '>=', startOfMonth.toISOString())) : null,
-    [user, firestore, startOfMonth]
+    [firestore, user, startOfMonth]
   );
   const savingsQuery = useMemoFirebase(() =>
     user ? query(collection(firestore, `users/${user.uid}/budgets`)) : null,
-    [user, firestore]
+    [firestore, user]
   );
 
   const { data: accounts, isLoading: isLoadingAccounts } = useCollection<Account>(accountsQuery);

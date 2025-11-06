@@ -19,7 +19,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   const firestore = useFirestore();
   const [currency, setCurrency] = useState('USD');
   
-  const userDocRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
+  const userDocRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
   useEffect(() => {
@@ -42,5 +42,3 @@ export function useCurrency() {
   }
   return context;
 }
-
-    

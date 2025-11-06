@@ -55,7 +55,7 @@ export default function AccountsPage() {
   const accountsQuery = useMemoFirebase(() => {
     if (!user) return null;
     return query(collection(firestore, `users/${user.uid}/accounts`));
-  }, [user, firestore]);
+  }, [firestore, user]);
 
   const { data: accounts, isLoading } = useCollection<Account>(accountsQuery);
   const totalBalance = accounts?.reduce((sum, acc) => sum + acc.balance, 0) ?? 0;

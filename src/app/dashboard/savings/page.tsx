@@ -45,14 +45,14 @@ export default function SavingsPage() {
   const savingsQuery = useMemoFirebase(() => {
     if (!user) return null;
     return query(collection(firestore, `users/${user.uid}/budgets`));
-  }, [user, firestore]);
+  }, [firestore, user]);
 
   const { data: savings, isLoading } = useCollection<Saving>(savingsQuery);
   
   const goalsQuery = useMemoFirebase(() => {
     if (!user) return null;
     return query(collection(firestore, `users/${user.uid}/goals`));
-  }, [user, firestore]);
+  }, [firestore, user]);
 
   const { data: goals } = useCollection<Goal>(goalsQuery);
 

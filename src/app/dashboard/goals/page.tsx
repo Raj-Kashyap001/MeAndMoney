@@ -34,7 +34,7 @@ export default function GoalsPage() {
   const goalsQuery = useMemoFirebase(() => {
     if (!user) return null;
     return query(collection(firestore, `users/${user.uid}/goals`));
-  }, [user, firestore]);
+  }, [firestore, user]);
 
   const { data: goals, isLoading } = useCollection<Goal>(goalsQuery);
 

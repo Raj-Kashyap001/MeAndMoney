@@ -75,7 +75,7 @@ export function AddTransactionDialog({ children, transaction, open: controlledOp
   const accountsQuery = useMemoFirebase(() => {
     if (!user) return null;
     return query(collection(firestore, `users/${user.uid}/accounts`));
-  }, [user, firestore]);
+  }, [firestore, user]);
 
   const { data: accounts, isLoading: isLoadingAccounts } = useCollection<Account>(accountsQuery);
 

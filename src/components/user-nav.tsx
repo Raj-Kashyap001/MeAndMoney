@@ -30,7 +30,7 @@ export function UserNav() {
   const auth = useAuth();
   const firestore = useFirestore();
 
-  const userDocRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
+  const userDocRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
   
   const handleLogout = async () => {
@@ -95,5 +95,3 @@ export function UserNav() {
     </DropdownMenu>
   );
 }
-
-    

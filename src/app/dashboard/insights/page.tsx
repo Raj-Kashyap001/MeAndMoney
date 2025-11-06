@@ -36,7 +36,7 @@ export default function InsightsPage() {
 
   const savingsQuery = useMemoFirebase(() =>
     user ? query(collection(firestore, `users/${user.uid}/budgets`)) : null,
-    [user, firestore]
+    [firestore, user]
   );
   const { data: savings } = useCollection<Saving>(savingsQuery);
 

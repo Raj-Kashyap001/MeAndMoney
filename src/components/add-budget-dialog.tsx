@@ -63,7 +63,7 @@ export function AddBudgetDialog({ children, budget, open: controlledOpen, onOpen
   
   const budgetsQuery = useMemoFirebase(() => 
     user ? query(collection(firestore, `users/${user.uid}/budgets`)) : null,
-    [user, firestore]
+    [firestore, user]
   );
   const { data: existingBudgets } = useCollection<Budget>(budgetsQuery);
 

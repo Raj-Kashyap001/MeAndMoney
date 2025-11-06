@@ -32,7 +32,7 @@ export function NotificationBell() {
   const notificationsQuery = useMemoFirebase(() => {
     if (!user) return null;
     return query(collection(firestore, `users/${user.uid}/notifications`), orderBy('createdAt', 'desc'), limit(20));
-  }, [user, firestore]);
+  }, [firestore, user]);
 
   const { data: notifications, isLoading } = useCollection<Notification>(notificationsQuery);
   const unreadCount = notifications?.filter(n => !n.isRead).length ?? 0;
