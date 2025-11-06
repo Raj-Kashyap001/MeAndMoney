@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -32,8 +32,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useUser, useFirestore, addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
+import type { Account } from '@/lib/types';
+
 
 const accountSchema = z.object({
   name: z.string().min(2, { message: 'Source name must be at least 2 characters.' }),
@@ -42,54 +44,92 @@ const accountSchema = z.object({
   bankName: z.string().optional(),
 });
 
-export function AddAccountDialog({ children }: { children: React.ReactNode }) {
-  const [open, setOpen] = useState(false);
+type AddAccountDialogProps = {
+  children: React.ReactNode;
+  account?: Account;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+};
+
+
+export function AddAccountDialog({ children, account, open: controlledOpen, onOpenChange: setControlledOpen }: AddAccountDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
+  const isEditMode = !!account;
+
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = setControlledOpen ?? setInternalOpen;
+
 
   const form = useForm<z.infer<typeof accountSchema>>({
     resolver: zodResolver(accountSchema),
-    defaultValues: {
-      name: '',
-      type: 'bank',
-      balance: 0,
-      bankName: '',
-    },
   });
+
+  useEffect(() => {
+    if (open) {
+      if (isEditMode && account) {
+        form.reset({
+          name: account.name,
+          type: account.type,
+          balance: account.balance,
+          bankName: account.bankName || '',
+        });
+      } else {
+        form.reset({
+          name: '',
+          type: 'bank',
+          balance: 0,
+          bankName: '',
+        });
+      }
+    }
+  }, [account, open, form, isEditMode]);
 
   const onSubmit = (values: z.infer<typeof accountSchema>) => {
     if (!user) {
-      toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to add a source.' });
+      toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in.' });
       return;
     }
     
-    const accountsCollection = collection(firestore, `users/${user.uid}/accounts`);
-    addDocumentNonBlocking(accountsCollection, {
-      ...values,
-      userId: user.uid,
-    });
+    if (isEditMode && account?.id) {
+      const accountDocRef = doc(firestore, `users/${user.uid}/accounts`, account.id);
+      setDocumentNonBlocking(accountDocRef, { ...values, userId: user.uid }, { merge: true });
+       toast({
+        title: 'Source Updated',
+        description: `Successfully updated the "${values.name}" source.`,
+      });
+    } else {
+      const accountsCollection = collection(firestore, `users/${user.uid}/accounts`);
+      addDocumentNonBlocking(accountsCollection, {
+        ...values,
+        userId: user.uid,
+      });
+      toast({
+        title: 'Source Added',
+        description: `Successfully added the "${values.name}" source.`,
+      });
+    }
 
-    toast({
-      title: 'Source Added',
-      description: `Successfully added the "${values.name}" source.`,
-    });
     setOpen(false);
-    form.reset();
   };
+
+  const trigger = controlledOpen === undefined ? <DialogTrigger asChild>{children}</DialogTrigger> : children;
+
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      {trigger}
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add New Source</DialogTitle>
+          <DialogTitle>{isEditMode ? 'Edit Source' : 'Add New Source'}</DialogTitle>
           <DialogDescription>
-            Enter the details for your new money source.
+            {isEditMode ? `Update the details for your "${account.name}" source.` : 'Enter the details for your new money source.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
             <FormField
               control={form.control}
               name="name"
@@ -152,7 +192,7 @@ export function AddAccountDialog({ children }: { children: React.ReactNode }) {
               )}
             />
             <DialogFooter>
-              <Button type="submit">Add Source</Button>
+              <Button type="submit">{isEditMode ? 'Save Changes' : 'Add Source'}</Button>
             </DialogFooter>
           </form>
         </Form>
