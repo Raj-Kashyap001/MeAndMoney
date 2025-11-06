@@ -1,3 +1,5 @@
+'use client';
+
 import { PlusCircle, Landmark, CreditCard, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/page-header';
@@ -21,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { mockAccounts } from '@/lib/data';
 import { formatCurrency } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import { AddAccountDialog } from '@/components/add-account-dialog';
 
 const AccountIcon = ({ type }: { type: 'bank' | 'card' | 'cash' }) => {
   const icons = {
@@ -35,10 +38,12 @@ export default function AccountsPage() {
   return (
     <>
       <PageHeader title="Accounts" description="Manage your connected accounts.">
-        <Button>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Add Account
-        </Button>
+        <AddAccountDialog>
+          <Button>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Add Account
+          </Button>
+        </AddAccountDialog>
       </PageHeader>
       <Card>
         <CardHeader>
