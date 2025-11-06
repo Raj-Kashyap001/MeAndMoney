@@ -17,7 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/componentsui/progress';
+import { Progress } from '@/components/ui/progress';
 import { PageHeader } from '@/components/page-header';
 import { formatCurrency } from '@/lib/utils';
 import { mockAccounts, mockTransactions, mockBudgets, mockGoals } from '@/lib/data';
