@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Upload, User, Trash2, KeyRound, Mail, LogOut, ShieldAlert } from 'lucide-react';
+import { Upload, User, Trash2, KeyRound, Mail, LogOut, ShieldAlert, Pencil, X, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/page-header';
 import {
@@ -24,6 +24,11 @@ export default function SettingsPage() {
     email: string;
     avatarUrl?: string;
   } | null>(null);
+  
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -35,9 +40,45 @@ export default function SettingsPage() {
         const parsedSession = JSON.parse(session);
         setUser(parsedSession);
         setAvatarUrl(parsedSession.avatarUrl);
+        setFirstName(parsedSession.name.split(' ')[0] || '');
+        setLastName(parsedSession.name.split(' ').slice(1).join(' ') || '');
       }
     }
   }, []);
+
+  const handleNameEditToggle = () => {
+    if (isEditingName) {
+      // Reset to original name if cancelling
+      if(user) {
+        setFirstName(user.name.split(' ')[0] || '');
+        setLastName(user.name.split(' ').slice(1).join(' ') || '');
+      }
+    }
+    setIsEditingName(!isEditingName);
+  };
+  
+  const handleNameSave = () => {
+    if (user) {
+      const newName = `${firstName} ${lastName}`.trim();
+      if(newName) {
+        const updatedUser = { ...user, name: newName };
+        setUser(updatedUser);
+        localStorage.setItem('user_session', JSON.stringify(updatedUser));
+        window.dispatchEvent(new Event('storage'));
+        toast({
+          title: 'Name Updated',
+          description: 'Your profile name has been successfully changed.',
+        });
+        setIsEditingName(false);
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Invalid Name',
+          description: 'Name fields cannot be empty.',
+        });
+      }
+    }
+  };
 
   const handlePictureUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -89,9 +130,6 @@ export default function SettingsPage() {
       .join('')
       .toUpperCase();
   };
-  
-  const getFirstName = () => user?.name.split(' ')[0] || '';
-  const getLastName = () => user?.name.split(' ').slice(1).join(' ') || '';
 
   return (
     <>
@@ -102,34 +140,35 @@ export default function SettingsPage() {
       <div className="grid gap-8 max-w-4xl mx-auto">
         {/* Profile Section */}
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-6">
-              <Avatar className="h-20 w-20">
-                <AvatarImage src={avatarUrl} alt={user?.name} />
-                <AvatarFallback className="text-3xl">
-                  {user ? getInitials(user.name) : <User />}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <div className="flex gap-2">
+          <CardHeader>
+             <CardTitle>Profile Details</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col md:flex-row items-start gap-6">
+              <div className="flex flex-col items-center gap-4 w-full md:w-48">
+                <Avatar className="h-24 w-24">
+                  <AvatarImage src={avatarUrl} alt={user?.name} />
+                  <AvatarFallback className="text-3xl">
+                    {user ? getInitials(user.name) : <User />}
+                  </AvatarFallback>
+                </Avatar>
+                 <div className="flex flex-col gap-2 w-full">
                   <Button
                     variant="outline"
                     onClick={() => fileInputRef.current?.click()}
                   >
-                    <Upload className="mr-2" />
+                    <Upload className="mr-2 h-4 w-4" />
                     Change Image
                   </Button>
                   <Button
                     variant="ghost"
-                    className="text-destructive hover:text-destructive"
+                    className="text-destructive hover:bg-transparent hover:text-destructive hover:border-destructive border border-transparent"
                     onClick={removePicture}
                   >
-                    Remove Image
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Remove
                   </Button>
                 </div>
-                <p className="text-sm text-muted-foreground mt-2">
-                  We support PNGs, JPEGs and GIFs under 2MB.
-                </p>
                 <Input
                   type="file"
                   ref={fileInputRef}
@@ -138,16 +177,50 @@ export default function SettingsPage() {
                   accept="image/png, image/jpeg, image/gif"
                 />
               </div>
-            </div>
-            <Separator className="my-6" />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First Name</Label>
-                <Input id="firstName" defaultValue={getFirstName()} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name</Label>
-                <Input id="lastName" defaultValue={getLastName()} />
+
+              <Separator orientation="vertical" className="h-auto hidden md:block" />
+              <Separator className="md:hidden"/>
+
+              <div className="flex-1 w-full">
+                {isEditingName ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="firstName">First Name</Label>
+                        <Input id="firstName" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="First Name"/>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="lastName">Last Name</Label>
+                        <Input id="lastName" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Last Name"/>
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button variant="ghost" size="sm" onClick={handleNameEditToggle}>
+                        <X className="mr-2 h-4 w-4" />
+                        Cancel
+                      </Button>
+                      <Button size="sm" onClick={handleNameSave}>
+                        <Check className="mr-2 h-4 w-4" />
+                        Save
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <Label>Name</Label>
+                      <h3 className="text-2xl font-bold mt-1">{user?.name}</h3>
+                      <p className="text-muted-foreground">{user?.email}</p>
+                    </div>
+                    <Button variant="outline" size="icon" onClick={handleNameEditToggle}>
+                      <Pencil className="h-4 w-4" />
+                      <span className="sr-only">Edit Name</span>
+                    </Button>
+                  </div>
+                )}
+                 <p className="text-sm text-muted-foreground mt-6">
+                  We support PNGs, JPEGs and GIFs under 2MB.
+                </p>
               </div>
             </div>
           </CardContent>
@@ -159,7 +232,7 @@ export default function SettingsPage() {
             <CardTitle>Account Security</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
               <div className="flex-shrink min-w-0">
                 <Label htmlFor="email">Email</Label>
                 <Input id="email" type="email" defaultValue={user?.email || ''} disabled className="mt-1 max-w-sm" />
@@ -167,7 +240,7 @@ export default function SettingsPage() {
               <Button variant="outline" className="flex-shrink-0">Change email</Button>
             </div>
             <Separator />
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
                <div className="flex-shrink min-w-0">
                 <Label htmlFor="password">Password</Label>
                 <Input id="password" type="password" defaultValue="•••••••••••" disabled className="mt-1 max-w-sm" />
@@ -211,7 +284,7 @@ export default function SettingsPage() {
             <CardTitle>Session Management</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
               <div className="flex-shrink min-w-0">
                 <h4 className="font-medium">Log out of all devices</h4>
                 <p className="text-sm text-muted-foreground">
@@ -221,7 +294,7 @@ export default function SettingsPage() {
               <Button variant="outline" className="flex-shrink-0">Log out</Button>
             </div>
             <Separator />
-             <div className="flex items-center justify-between gap-4">
+             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div className="flex-shrink min-w-0">
                 <h4 className="font-medium text-destructive">Delete my account</h4>
                 <p className="text-sm text-muted-foreground">
