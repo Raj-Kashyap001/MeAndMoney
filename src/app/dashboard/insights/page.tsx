@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,12 +9,15 @@ import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { getFinancialTips } from '@/app/actions';
-import { mockTransactions, mockBudgets } from '@/lib/data';
+import { mockTransactions } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import { AddBudgetDialog } from '@/components/add-budget-dialog';
 import { AddGoalDialog } from '@/components/add-goal-dialog';
 import type { FinancialTipsOutput } from '@/ai/flows/financial-tips-from-spending';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useCollection, useFirestore, useUser, useMemoFirebase } from '@/firebase';
+import { collection, query } from 'firebase/firestore';
+import type { Budget as Saving } from '@/lib/types';
 
 type Tip = FinancialTipsOutput['tips'][0] & { id: string };
 
@@ -27,6 +31,14 @@ export default function InsightsPage() {
 
   const { toast } = useToast();
   const router = useRouter();
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const savingsQuery = useMemoFirebase(() =>
+    user ? query(collection(firestore, `users/${user.uid}/budgets`)) : null,
+    [user, firestore]
+  );
+  const { data: savings } = useCollection<Saving>(savingsQuery);
 
   useEffect(() => {
     const storedStarredTips = localStorage.getItem('starredTips');
@@ -40,7 +52,8 @@ export default function InsightsPage() {
     setTips([]);
     setAllGoodMessage(null);
     try {
-      const spendingData = mockBudgets.map(b => ({ category: b.category, spent: b.spent }));
+      const spendingData = savings?.map(s => ({ category: s.category, spent: s.spent })) ?? [];
+      // This part is still using mock data, should be replaced with real transactions later
       const income = mockTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
 
       const result = await getFinancialTips({
@@ -74,7 +87,7 @@ export default function InsightsPage() {
 
     const { type, payload } = tip.action;
     if (type === 'navigate') {
-      router.push(payload);
+      router.push(payload.replace('/budgets', '/savings'));
     } else if (type === 'open_dialog') {
       if (payload === 'add_budget') {
         setIsAddBudgetOpen(true);

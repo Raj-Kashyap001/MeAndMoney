@@ -115,22 +115,22 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
             const months = differenceInMonths(values.deadline, new Date());
             const monthlyContribution = months > 0 ? (values.targetAmount - values.currentAmount) / months : (values.targetAmount - values.currentAmount);
 
-            // Create linked Budget
-            const budgetsCollection = collection(firestore, `users/${user.uid}/budgets`);
-            const budgetData = {
+            // Create linked Saving Plan
+            const savingsCollection = collection(firestore, `users/${user.uid}/budgets`);
+            const savingData = {
                 userId: user.uid,
                 category: `Goal: ${values.name}`,
                 amount: Math.max(0, monthlyContribution),
                 spent: 0,
-                isGoal: true, // Flag to identify goal-linked budgets
+                isGoal: true, // Flag to identify goal-linked savings
                 goalId: goalRef.id
             };
-            addDocumentNonBlocking(budgetsCollection, budgetData);
+            addDocumentNonBlocking(savingsCollection, savingData);
         }
         
         toast({
         title: isEditMode ? 'Goal Updated' : 'Goal Added',
-        description: `Successfully ${isEditMode ? 'updated' : 'added'} the "${values.name}" goal. A new budget has been created.`,
+        description: `Successfully ${isEditMode ? 'updated' : 'added'} the "${values.name}" goal. A new saving plan has been created.`,
         });
         setOpen(false);
     } catch (e) {

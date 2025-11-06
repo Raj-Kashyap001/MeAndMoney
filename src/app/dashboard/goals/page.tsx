@@ -66,7 +66,7 @@ export default function GoalsPage() {
 
     toast({
       title: "Goal Deleted",
-      description: `The "${goal.name}" goal and its linked budget have been deleted.`,
+      description: `The "${goal.name}" goal and its linked saving plan have been deleted.`,
     });
     setGoalToDelete(null);
   };
@@ -156,7 +156,7 @@ export default function GoalsPage() {
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the goal for {'"'}
-              {goalToDelete?.name}{'"'} and its linked budget.
+              {goalToDelete?.name}{'"'} and its linked saving plan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

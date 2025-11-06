@@ -34,7 +34,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, updateDocumentNonBlocking, addDocumentNonBlocking, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, query, where, getDocs } from 'firebase/firestore';
-import type { Account, Goal, Budget } from '@/lib/types';
+import type { Account, Goal, Budget as Saving } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 
@@ -112,17 +112,17 @@ export function ContributeToGoalDialog({ children, goal, open: controlledOpen, o
         const newBalance = fromAccount.balance - values.amount;
         updateDocumentNonBlocking(accountDocRef, { balance: newBalance });
 
-        // 3. Update the linked budget's spent amount
-        const budgetCategory = `Goal: ${goal.name}`;
-        const budgetsCollectionRef = collection(firestore, `users/${user.uid}/budgets`);
-        const budgetQuery = query(budgetsCollectionRef, where("category", "==", budgetCategory));
-        const budgetSnapshot = await getDocs(budgetQuery);
+        // 3. Update the linked saving plan's spent amount
+        const savingCategory = `Goal: ${goal.name}`;
+        const savingsCollectionRef = collection(firestore, `users/${user.uid}/budgets`);
+        const savingQuery = query(savingsCollectionRef, where("category", "==", savingCategory));
+        const savingSnapshot = await getDocs(savingQuery);
 
-        if (!budgetSnapshot.empty) {
-            const budgetDoc = budgetSnapshot.docs[0];
-            const budgetData = budgetDoc.data() as Budget;
-            const newSpentAmount = budgetData.spent + values.amount;
-            updateDocumentNonBlocking(budgetDoc.ref, { spent: newSpentAmount });
+        if (!savingSnapshot.empty) {
+            const savingDoc = savingSnapshot.docs[0];
+            const savingData = savingDoc.data() as Saving;
+            const newSpentAmount = savingData.spent + values.amount;
+            updateDocumentNonBlocking(savingDoc.ref, { spent: newSpentAmount });
         }
         
         // 4. Create a transaction for this contribution
@@ -133,10 +133,20 @@ export function ContributeToGoalDialog({ children, goal, open: controlledOpen, o
           description: `Contribution to goal: ${goal.name}`,
           amount: values.amount,
           type: 'expense',
-          category: 'Transfer',
+          category: 'Savings',
           accountId: values.fromAccountId,
         };
         addDocumentNonBlocking(transactionsCollection, transactionData);
+        
+        const notificationMessage = `Successfully saved ${formatCurrency(values.amount, fromAccount.currency || 'USD')} for your "${goal.name}" goal.`;
+        addDocumentNonBlocking(collection(firestore, `users/${user.uid}/notifications`), {
+            userId: user.uid,
+            message: notificationMessage,
+            type: 'info',
+            isRead: false,
+            createdAt: new Date().toISOString()
+        });
+
 
         toast({
             title: 'Contribution Successful!',
@@ -175,7 +185,7 @@ export function ContributeToGoalDialog({ children, goal, open: controlledOpen, o
               name="amount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Contribution Amount</FormLabel>
+                  <FormLabel>Contribution Amount (for this month's saving)</FormLabel>
                   <FormControl>
                     <Input type="number" placeholder="0.00" {...field} />
                   </FormControl>

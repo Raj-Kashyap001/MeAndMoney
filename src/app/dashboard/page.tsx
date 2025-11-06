@@ -26,7 +26,7 @@ import { AddTransactionDialog } from '@/components/add-transaction-dialog';
 import { format } from 'date-fns';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, limit } from 'firebase/firestore';
-import type { Account, Transaction, Budget } from '@/lib/types';
+import type { Account, Transaction, Budget as Saving } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCurrency } from '@/components/currency-provider';
 
@@ -43,18 +43,18 @@ export default function DashboardPage() {
     user ? query(collection(firestore, `users/${user.uid}/transactions`), orderBy('date', 'desc'), limit(5)) : null,
     [user, firestore]
   );
-  const budgetsQuery = useMemoFirebase(() => 
+  const savingsQuery = useMemoFirebase(() => 
     user ? query(collection(firestore, `users/${user.uid}/budgets`)) : null,
     [user, firestore]
   );
 
   const { data: accounts, isLoading: isLoadingAccounts } = useCollection<Account>(accountsQuery);
   const { data: transactions, isLoading: isLoadingTransactions } = useCollection<Transaction>(transactionsQuery);
-  const { data: budgets, isLoading: isLoadingBudgets } = useCollection<Budget>(budgetsQuery);
+  const { data: savings, isLoading: isLoadingSavings } = useCollection<Saving>(savingsQuery);
 
   const totalBalance = accounts?.reduce((sum, acc) => sum + acc.balance, 0) ?? 0;
-  const totalBudget = budgets?.reduce((sum, budget) => sum + budget.amount, 0) ?? 0;
-  const totalSpent = budgets?.reduce((sum, budget) => sum + budget.spent, 0) ?? 0;
+  const totalSavingTarget = savings?.reduce((sum, saving) => sum + saving.amount, 0) ?? 0;
+  const totalSaved = savings?.reduce((sum, saving) => sum + saving.spent, 0) ?? 0;
 
   const thisMonthIncome = transactions
     ?.filter(t => t.type === 'income' && new Date(t.date).getMonth() === new Date().getMonth())
@@ -100,7 +100,7 @@ export default function DashboardPage() {
         <StatCard title="Total Balance" value={formatCurrency(totalBalance, currency)} icon={Wallet} description="Across all accounts" isLoading={isLoadingAccounts} />
         <StatCard title="Income" value={formatCurrency(thisMonthIncome, currency)} icon={TrendingUp} description="This month" isLoading={isLoadingTransactions} />
         <StatCard title="Expenses" value={formatCurrency(thisMonthExpenses, currency)} icon={TrendingDown} description="This month" isLoading={isLoadingTransactions} />
-        <StatCard title="Budget Progress" value={`${formatCurrency(totalSpent, currency)} / ${formatCurrency(totalBudget, currency)}`} icon={Target} description={`${(totalBudget > 0 ? (totalSpent / totalBudget * 100) : 0).toFixed(0)}% of budget used`} isLoading={isLoadingBudgets} />
+        <StatCard title="Savings Progress" value={`${formatCurrency(totalSaved, currency)} / ${formatCurrency(totalSavingTarget, currency)}`} icon={Target} description={`${(totalSavingTarget > 0 ? (totalSaved / totalSavingTarget * 100) : 0).toFixed(0)}% of saving target met`} isLoading={isLoadingSavings} />
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="lg:col-span-4">
@@ -149,21 +149,21 @@ export default function DashboardPage() {
         </Card>
         <Card className="lg:col-span-3">
           <CardHeader>
-            <CardTitle>Budgets</CardTitle>
-            <CardDescription>Your spending limits for this month.</CardDescription>
+            <CardTitle>Savings</CardTitle>
+            <CardDescription>Your saving goals for this month.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
-            {isLoadingBudgets ? (
+            {isLoadingSavings ? (
               [...Array(2)].map((_,i) => <Skeleton key={i} className="h-10 w-full" />)
-            ) : budgets && budgets.length > 0 ? (
-              budgets.map((budget) => {
-                const progress = (budget.spent / budget.amount) * 100;
+            ) : savings && savings.length > 0 ? (
+              savings.map((saving) => {
+                const progress = (saving.spent / saving.amount) * 100;
                 return (
-                  <div key={budget.id}>
+                  <div key={saving.id}>
                     <div className="flex justify-between mb-1">
-                      <span className="text-sm font-medium">{budget.category}</span>
+                      <span className="text-sm font-medium">{saving.category}</span>
                       <span className="text-sm text-muted-foreground">
-                        {formatCurrency(budget.spent, currency)} / {formatCurrency(budget.amount, currency)}
+                        {formatCurrency(saving.spent, currency)} / {formatCurrency(saving.amount, currency)}
                       </span>
                     </div>
                     <Progress value={progress} className="h-2" />
@@ -171,7 +171,7 @@ export default function DashboardPage() {
                 )
               })
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">No budgets created yet.</p>
+              <p className="text-sm text-muted-foreground text-center py-4">No savings plans created yet.</p>
             )}
           </CardContent>
         </Card>
@@ -179,5 +179,3 @@ export default function DashboardPage() {
     </>
   );
 }
-
-    

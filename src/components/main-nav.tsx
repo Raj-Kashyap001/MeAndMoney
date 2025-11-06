@@ -24,7 +24,7 @@ const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/accounts', label: 'Money', icon: Wallet },
   { href: '/dashboard/transactions', label: 'Transactions', icon: ArrowRightLeft },
-  { href: '/dashboard/budgets', label: 'Budgets', icon: PiggyBank },
+  { href: '/dashboard/savings', label: 'Savings', icon: PiggyBank },
   { href: '/dashboard/goals', label: 'Goals', icon: Target },
   { href: '/dashboard/insights', label: 'Insights', icon: Lightbulb },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
