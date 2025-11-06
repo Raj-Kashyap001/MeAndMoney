@@ -23,6 +23,20 @@ import { Logo } from '@/components/logo';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
+import {
+  useAuth,
+  useUser,
+  setDocumentNonBlocking,
+} from '@/firebase';
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
+  sendEmailVerification,
+} from 'firebase/auth';
+import { doc, getFirestore } from 'firebase/firestore';
+
 const loginSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
   password: z.string().min(8, { message: 'Password must be at least 8 characters.' }),
@@ -40,7 +54,16 @@ export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
-  
+  const auth = useAuth();
+  const { user, isUserLoading } = useUser();
+  const firestore = getFirestore();
+
+  useEffect(() => {
+    if (user && !isUserLoading) {
+      router.push('/dashboard');
+    }
+  }, [user, isUserLoading, router]);
+
   useEffect(() => {
     setIsLogin(searchParams.get('mode') !== 'signup');
   }, [searchParams]);
@@ -56,28 +79,117 @@ export default function AuthPage() {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      if (isLogin) {
+        // Login
+        const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
+        if (!userCredential.user.emailVerified) {
+          toast({
+            variant: 'destructive',
+            title: 'Email Not Verified',
+            description: 'Please check your inbox to verify your email address.',
+          });
+          await auth.signOut();
+          setIsLoading(false);
+          return;
+        }
+        toast({
+          title: 'Login Successful',
+          description: `Welcome back! Redirecting to your dashboard...`,
+        });
+        router.push('/dashboard');
+      } else {
+        // Signup
+        const { name, email, password } = values as z.infer<typeof signupSchema>;
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const newUser = userCredential.user;
 
-    toast({
-      title: isLogin ? 'Login Successful' : 'Signup Successful',
-      description: `Welcome${!isLogin ? `, ${'name' in values ? values.name : ''}` : ''}! Redirecting to your dashboard...`,
-    });
+        // Create user document in Firestore
+        const userDocRef = doc(firestore, 'users', newUser.uid);
+        const [firstName, ...lastNameParts] = name.split(' ');
+        const lastName = lastNameParts.join(' ');
+        
+        setDocumentNonBlocking(userDocRef, {
+          id: newUser.uid,
+          email: newUser.email,
+          firstName: firstName,
+          lastName: lastName,
+        }, {});
+        
+        await sendEmailVerification(newUser);
 
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('user_session', JSON.stringify({ email: values.email, name: 'name' in values ? values.name : 'User' }));
+        toast({
+          title: 'Signup Successful!',
+          description: "We've sent a verification link to your email. Please check your inbox.",
+        });
+
+        await auth.signOut();
+        toggleForm(); // Switch to login form
+      }
+    } catch (error: any) {
+      const errorCode = error.code || 'An unknown error occurred';
+      toast({
+        variant: 'destructive',
+        title: isLogin ? 'Login Failed' : 'Signup Failed',
+        description: errorCode.replace('auth/', '').replace(/-/g, ' '),
+      });
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    router.push('/dashboard');
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true);
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      const userDocRef = doc(firestore, 'users', user.uid);
+      const [firstName, ...lastNameParts] = (user.displayName || '').split(' ');
+      const lastName = lastNameParts.join(' ');
+
+      // Set document non-blockingly, will merge if exists
+      setDocumentNonBlocking(userDocRef, {
+        id: user.uid,
+        email: user.email,
+        firstName: firstName,
+        lastName: lastName,
+      }, { merge: true });
+
+      toast({
+        title: 'Login Successful',
+        description: `Welcome, ${user.displayName}!`,
+      });
+      router.push('/dashboard');
+    } catch (error: any) {
+       toast({
+        variant: 'destructive',
+        title: 'Google Sign-In Failed',
+        description: error.message,
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   const toggleForm = () => {
-    setIsLogin(!isLogin);
-    const newPath = `/login?mode=${!isLogin ? 'login' : 'signup'}`;
+    const newIsLogin = !isLogin;
+    setIsLogin(newIsLogin);
+    const newPath = `/login?mode=${newIsLogin ? 'login' : 'signup'}`;
     router.replace(newPath, { scroll: false });
     form.reset();
   };
 
   const loginBg = PlaceHolderImages.find((img) => img.id === 'login-bg');
+
+  if (isUserLoading || user) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-screen lg:grid lg:min-h-screen lg:grid-cols-2">
@@ -150,7 +262,7 @@ export default function AuthPage() {
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isLogin ? 'Login' : 'Sign Up'}
               </Button>
-              <Button variant="outline" className="w-full" type="button" disabled={isLoading}>
+              <Button variant="outline" className="w-full" type="button" disabled={isLoading} onClick={handleGoogleSignIn}>
                 {isLogin ? 'Login with Google' : 'Sign up with Google'}
               </Button>
             </form>
@@ -161,6 +273,7 @@ export default function AuthPage() {
               variant="link"
               onClick={toggleForm}
               className="underline"
+              disabled={isLoading}
             >
               {isLogin ? 'Sign up' : 'Login'}
             </Button>

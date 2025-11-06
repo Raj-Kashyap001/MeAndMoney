@@ -8,6 +8,7 @@ import {
   Bell,
   PanelLeft,
   Search,
+  Loader2
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -25,28 +26,28 @@ import { Logo } from '@/components/logo';
 import { MainNav } from '@/components/main-nav';
 import { UserNav } from '@/components/user-nav';
 import { Separator } from '@/components/ui/separator';
+import { useUser } from '@/firebase';
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const { user, isUserLoading } = useUser();
   const router = useRouter();
-  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    setIsClient(true);
-    if (typeof window !== 'undefined') {
-      const session = localStorage.getItem('user_session');
-      if (!session) {
-        router.push('/login');
-      }
+    if (!isUserLoading && !user) {
+      router.push('/login');
     }
-  }, [router]);
+  }, [user, isUserLoading, router]);
 
-  if (!isClient) {
-    return null; // Or a loading spinner
+  if (isUserLoading || !user) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
   }
 
   return (
@@ -57,6 +58,7 @@ export default function DashboardLayout({
             <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
               <Logo />
             </Link>
+            <Separator className="my-2" />
           </div>
           <div className="flex-1">
             <MainNav isCollapsed={false} />
@@ -76,15 +78,15 @@ export default function DashboardLayout({
                 <span className="sr-only">Toggle navigation menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="flex flex-col">
-              <SheetHeader>
-                <SheetTitle>
+            <SheetContent side="left" className="flex flex-col p-0">
+              <SheetHeader className="p-6">
+                 <SheetTitle>
                    <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
                     <Logo />
                   </Link>
                 </SheetTitle>
               </SheetHeader>
-              <Separator className="my-2" />
+              <Separator />
               <MainNav isCollapsed={false} />
             </SheetContent>
           </Sheet>

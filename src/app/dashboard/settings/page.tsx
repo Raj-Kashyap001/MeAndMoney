@@ -19,13 +19,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
+import { useAuth, useUser, setDocumentNonBlocking, useFirestore } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 export default function SettingsPage() {
-  const [user, setUser] = useState<{
-    name: string;
-    email: string;
-    avatarUrl?: string;
-  } | null>(null);
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+  const firestore = useFirestore();
   
   const [isEditingName, setIsEditingName] = useState(false);
   const [firstName, setFirstName] = useState('');
@@ -37,37 +37,42 @@ export default function SettingsPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const session = localStorage.getItem('user_session');
-      if (session) {
-        const parsedSession = JSON.parse(session);
-        setUser(parsedSession);
-        setAvatarUrl(parsedSession.avatarUrl);
-        setFirstName(parsedSession.name.split(' ')[0] || '');
-        setLastName(parsedSession.name.split(' ').slice(1).join(' ') || '');
-      } else {
-        router.push('/login');
-      }
+    if (!isUserLoading && user) {
+        // Here you would fetch the user profile from Firestore
+        // For now, we'll parse from display name
+        setAvatarUrl(user.photoURL || undefined);
+        const name = user.displayName || 'User';
+        const nameParts = name.split(' ');
+        setFirstName(nameParts[0] || '');
+        setLastName(nameParts.slice(1).join(' ') || '');
     }
-  }, [router]);
+  }, [user, isUserLoading]);
 
-  const handleLogout = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('user_session');
+  const handleLogout = async () => {
+    try {
+      await auth.signOut();
+      toast({
+        title: 'Logged Out',
+        description: 'You have been successfully logged out.',
+      });
+      router.push('/login');
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Logout Failed',
+        description: 'An error occurred while logging out.',
+      });
     }
-    toast({
-      title: 'Logged Out',
-      description: 'You have been successfully logged out.',
-    });
-    router.push('/login');
   };
 
   const handleNameEditToggle = () => {
     if (isEditingName) {
       // Reset to original name if cancelling
       if(user) {
-        setFirstName(user.name.split(' ')[0] || '');
-        setLastName(user.name.split(' ').slice(1).join(' ') || '');
+        const name = user.displayName || '';
+        const nameParts = name.split(' ');
+        setFirstName(nameParts[0] || '');
+        setLastName(nameParts.slice(1).join(' ') || '');
       }
     }
     setIsEditingName(!isEditingName);
@@ -77,10 +82,17 @@ export default function SettingsPage() {
     if (user) {
       const newName = `${firstName} ${lastName}`.trim();
       if(newName) {
-        const updatedUser = { ...user, name: newName, avatarUrl: avatarUrl };
-        setUser(updatedUser);
-        localStorage.setItem('user_session', JSON.stringify(updatedUser));
-        window.dispatchEvent(new Event('storage'));
+        const userDocRef = doc(firestore, 'users', user.uid);
+        
+        setDocumentNonBlocking(userDocRef, {
+            firstName,
+            lastName
+        }, { merge: true });
+
+        // This doesn't update auth.currentUser displayName immediately,
+        // but we'll reflect it in the UI optimistically.
+        // For a full solution, you'd re-fetch the user profile.
+        
         toast({
           title: 'Profile Updated',
           description: 'Your profile has been successfully changed.',
@@ -111,6 +123,8 @@ export default function SettingsPage() {
       reader.onloadend = () => {
         const newAvatarUrl = reader.result as string;
         setAvatarUrl(newAvatarUrl);
+        // Here you would typically upload to Firebase Storage and then update the user profile URL
+        // For now, it's just a local preview
       };
       reader.readAsDataURL(file);
     }
@@ -127,6 +141,8 @@ export default function SettingsPage() {
       .join('')
       .toUpperCase();
   };
+  
+  const displayName = `${firstName} ${lastName}`.trim();
 
   return (
     <>
@@ -144,9 +160,9 @@ export default function SettingsPage() {
             <div className="flex flex-col md:flex-row items-start gap-6">
               <div className="flex flex-col items-center gap-4 w-full md:w-48">
                 <Avatar className="h-24 w-24">
-                  <AvatarImage src={avatarUrl} alt={user?.name} />
+                  <AvatarImage src={avatarUrl} alt={displayName} />
                   <AvatarFallback className="text-3xl">
-                    {user ? getInitials(user.name) : <User />}
+                    {user ? getInitials(displayName) : <User />}
                   </AvatarFallback>
                 </Avatar>
                 {isEditingName && (
@@ -211,7 +227,7 @@ export default function SettingsPage() {
                   <div className="flex items-start justify-between">
                     <div>
                       <Label>Name</Label>
-                      <h3 className="text-2xl font-bold mt-1">{user?.name}</h3>
+                      <h3 className="text-2xl font-bold mt-1">{displayName}</h3>
                       <p className="text-muted-foreground">{user?.email}</p>
                     </div>
                     <Button variant="outline" size="icon" onClick={handleNameEditToggle}>
@@ -289,7 +305,7 @@ export default function SettingsPage() {
                   Log out of all other active sessions on other devices besides this one.
                 </p>
               </div>
-              <Button variant="outline" className="flex-shrink-0" onClick={handleLogout}>Log out</Button>
+              <Button variant="outline" className="flex-shrink-0 hover:bg-destructive hover:text-destructive-foreground" onClick={handleLogout}>Log out</Button>
             </div>
             <Separator />
              <div className="flex items-center justify-between gap-4 flex-wrap">
