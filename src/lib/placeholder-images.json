@@ -3,8 +3,14 @@
     {
       "id": "login-bg",
       "description": "Abstract background for login page",
-      "imageUrl": "https://images.unsplash.com/photo-1717994818194-5760d533cab6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8ZmluYW5jZSUyMGFic3RyYWN0fGVufDB8fHx8MTc2MjMxMTQwMHww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "finance abstract"
+      "imageUrl": "https://images.unsplash.com/photo-1554224155-8d04421cd6c3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxmaW5hbmNlfGVufDB8fHx8MTc2MjM5ODg0Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "finance planning"
+    },
+    {
+      "id": "hero-bg",
+      "description": "A person working on their finances on a laptop.",
+      "imageUrl": "https://images.unsplash.com/photo-1554224155-8d04421cd6c3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxmaW5hbmNlfGVufDB8fHx8MTc2MjM5ODg0Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "finance planning"
     }
   ]
 }

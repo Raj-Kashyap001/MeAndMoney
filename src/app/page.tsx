@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, CheckCircle } from 'lucide-react';
 
 export default function LandingPage() {
-  const heroImage = PlaceHolderImages.find((img) => img.id === 'login-bg');
+  const heroImage = PlaceHolderImages.find((img) => img.id === 'hero-bg');
 
   return (
     <div className="bg-background text-foreground min-h-screen">
