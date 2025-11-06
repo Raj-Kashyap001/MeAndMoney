@@ -187,7 +187,7 @@ export function ContributeToGoalDialog({ children, goal, open: controlledOpen, o
               name="amount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Contribution Amount (for this month's saving)</FormLabel>
+                  <FormLabel>Contribution Amount (for this month&apos;s saving)</FormLabel>
                   <FormControl>
                     <Input type="number" placeholder="0.00" {...field} />
                   </FormControl>
