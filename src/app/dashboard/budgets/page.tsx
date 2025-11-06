@@ -1,3 +1,5 @@
+'use client';
+
 import { PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/page-header';
@@ -6,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { mockBudgets } from '@/lib/data';
 import { formatCurrency } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import { AddBudgetDialog } from '@/components/add-budget-dialog';
 
 const getProgressColor = (value: number) => {
   if (value > 90) return 'bg-destructive';
@@ -17,10 +20,12 @@ export default function BudgetsPage() {
   return (
     <>
       <PageHeader title="Budgets" description="Manage your monthly spending limits.">
-        <Button>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Add Budget
-        </Button>
+        <AddBudgetDialog>
+          <Button>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Add Budget
+          </Button>
+        </AddBudgetDialog>
       </PageHeader>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {mockBudgets.map((budget) => {
@@ -47,7 +52,9 @@ export default function BudgetsPage() {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button variant="outline" size="sm" className="w-full">Adjust Budget</Button>
+                 <AddBudgetDialog budget={budget}>
+                  <Button variant="outline" size="sm" className="w-full">Adjust Budget</Button>
+                </AddBudgetDialog>
               </CardFooter>
             </Card>
           )
