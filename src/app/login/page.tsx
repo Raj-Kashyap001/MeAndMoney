@@ -34,9 +34,14 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   sendEmailVerification,
+  sendPasswordResetEmail,
+  fetchSignInMethodsForEmail,
+  linkWithCredential,
+  EmailAuthProvider,
 } from 'firebase/auth';
 import { doc, getFirestore } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { LoadingLogo } from '@/components/loading-logo';
 
 const loginSchema = z.object({
@@ -78,6 +83,8 @@ export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [verificationMessage, setVerificationMessage] = useState<string | null>(null);
+  const [resetPasswordEmail, setResetPasswordEmail] = useState('');
+  const [isResetAlertOpen, setIsResetAlertOpen] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
@@ -179,6 +186,7 @@ export default function AuthPage() {
         email: user.email,
         firstName: firstName,
         lastName: lastName,
+        photoURL: user.photoURL
       }, { merge: true });
 
       toast({
@@ -187,16 +195,65 @@ export default function AuthPage() {
       });
       router.push('/dashboard');
     } catch (error: any) {
-       toast({
-        variant: 'destructive',
-        title: 'Google Sign-In Failed',
-        description: error.message,
-      });
+       if (error.code === 'auth/account-exists-with-different-credential' && error.customData?.email) {
+            const email = error.customData.email;
+            const methods = await fetchSignInMethodsForEmail(auth, email);
+
+            if (methods.includes('password')) {
+                toast({
+                    title: 'Account Linking',
+                    description: 'An account already exists with this email. Sign in with your password to link your Google account.',
+                });
+                
+                form.setValue('email', email);
+                if (!isLogin) toggleForm(); // Switch to login form
+                
+                const password = await new Promise<string>((resolve) => {
+                    // This is a simplified prompt. A real app would use a secure modal.
+                    const pass = window.prompt("Please enter your password to link your Google account.");
+                    resolve(pass || '');
+                });
+
+                if (password) {
+                    try {
+                        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                        const googleCredential = GoogleAuthProvider.credentialFromError(error);
+                        if (userCredential.user && googleCredential) {
+                            await linkWithCredential(userCredential.user, googleCredential);
+                            toast({ title: 'Accounts Linked!', description: 'Your Google account has been successfully linked.' });
+                            router.push('/dashboard');
+                        }
+                    } catch (linkError: any) {
+                         toast({ variant: 'destructive', title: 'Linking Failed', description: linkError.message });
+                    }
+                }
+            }
+       } else {
+         toast({
+            variant: 'destructive',
+            title: 'Google Sign-In Failed',
+            description: error.message,
+          });
+       }
     } finally {
       setIsGoogleLoading(false);
     }
   };
   
+  const handleForgotPassword = async () => {
+    if (!resetPasswordEmail) {
+      toast({ variant: 'destructive', title: 'Email required', description: 'Please enter your email address.' });
+      return;
+    }
+    try {
+      await sendPasswordResetEmail(auth, resetPasswordEmail);
+      toast({ title: 'Password Reset Email Sent', description: 'Check your inbox for a link to reset your password.' });
+      setIsResetAlertOpen(false);
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Error', description: error.message });
+    }
+  };
+
   const toggleForm = () => {
     const newIsLogin = !isLogin;
     setIsLogin(newIsLogin);
@@ -274,9 +331,31 @@ export default function AuthPage() {
                     <div className="flex items-center">
                       <FormLabel>Password</FormLabel>
                       {isLogin && (
-                        <Button variant="link" type="button" className="ml-auto inline-block text-sm">
-                          Forgot password?
-                        </Button>
+                        <AlertDialog open={isResetAlertOpen} onOpenChange={setIsResetAlertOpen}>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="link" type="button" className="ml-auto inline-block text-sm" onClick={() => setResetPasswordEmail(form.getValues('email'))}>
+                              Forgot password?
+                            </Button>
+                          </AlertDialogTrigger>
+                           <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Reset Password</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Enter your email address and we'll send you a link to reset your password.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <Input 
+                                type="email" 
+                                placeholder="your@email.com" 
+                                value={resetPasswordEmail}
+                                onChange={(e) => setResetPasswordEmail(e.target.value)}
+                              />
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleForgotPassword}>Send Reset Link</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                       )}
                     </div>
                     <FormControl>
@@ -338,3 +417,5 @@ export default function AuthPage() {
     </div>
   );
 }
+
+    

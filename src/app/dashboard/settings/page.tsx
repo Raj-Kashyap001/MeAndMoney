@@ -3,7 +3,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Upload, User, Trash2, KeyRound, Mail, LogOut, ShieldAlert, Pencil, X, Check, Globe } from 'lucide-react';
+import { Upload, User, Trash2, KeyRound, LogOut, Pencil, X, Check, Globe, Moon, Sun, Laptop } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/page-header';
 import {
@@ -17,14 +17,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { useAuth, useUser, setDocumentNonBlocking, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { sendPasswordResetEmail, deleteUser } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCurrency } from '@/components/currency-provider';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useTheme } from 'next-themes';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 const currencies = [
   { code: 'USD', name: 'United States Dollar' },
@@ -41,6 +43,7 @@ export default function SettingsPage() {
   const auth = useAuth();
   const firestore = useFirestore();
   const { currency, setCurrency } = useCurrency();
+  const { theme, setTheme } = useTheme();
   
   const userDocRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
@@ -53,6 +56,10 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const router = useRouter();
+  
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [deleteConfirmationEmail, setDeleteConfirmationEmail] = useState('');
+
 
   useEffect(() => {
     if (userProfile) {
@@ -78,6 +85,37 @@ export default function SettingsPage() {
       });
     }
   };
+  
+  const handleChangePassword = async () => {
+    if (!user?.email) {
+      toast({ variant: 'destructive', title: 'Error', description: 'No email address found for your account.' });
+      return;
+    }
+    try {
+      await sendPasswordResetEmail(auth, user.email);
+      toast({ title: 'Password Reset Email Sent', description: 'Check your inbox to reset your password.' });
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Error', description: error.message });
+    }
+  };
+  
+  const handleDeleteAccount = async () => {
+    if (!user) {
+      toast({ variant: 'destructive', title: 'Not authenticated' });
+      return;
+    }
+    try {
+      await deleteUser(user);
+      toast({ title: 'Account Deleted', description: 'Your account has been permanently deleted.' });
+      router.push('/login');
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Deletion Failed', description: error.message });
+    } finally {
+      setIsDeleteAlertOpen(false);
+      setDeleteConfirmationEmail('');
+    }
+  };
+
 
   const handleNameEditToggle = () => {
     if (isEditingName) {
@@ -291,6 +329,27 @@ export default function SettingsPage() {
                 </SelectContent>
               </Select>
             </div>
+             <Separator />
+             <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex-shrink min-w-0">
+                    <Label className="flex items-center gap-2">
+                        <Sun className="h-4 w-4 inline-block dark:hidden" />
+                        <Moon className="h-4 w-4 hidden dark:inline-block" />
+                        Theme
+                    </Label>
+                    <p className="text-muted-foreground text-sm pt-1">Select the app color scheme.</p>
+                </div>
+                 <Select value={theme} onValueChange={setTheme}>
+                    <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Select theme" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="light"><Sun className="inline-block mr-2 h-4 w-4"/>Light</SelectItem>
+                        <SelectItem value="dark"><Moon className="inline-block mr-2 h-4 w-4"/>Dark</SelectItem>
+                        <SelectItem value="system"><Laptop className="inline-block mr-2 h-4 w-4"/>System</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
           </CardContent>
         </Card>
 
@@ -312,39 +371,11 @@ export default function SettingsPage() {
                 <Label>Password</Label>
                 <p className="text-muted-foreground text-sm pt-1">••••••••••••</p>
               </div>
-              <Button variant="outline" className="flex-shrink-0">Change password</Button>
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex-shrink min-w-0">
-                <h4 className="font-medium">2-Step Verification</h4>
-                <p className="text-sm text-muted-foreground">
-                  Add an additional layer of security to your account during login.
-                </p>
-              </div>
-              <Switch />
+              <Button variant="outline" className="flex-shrink-0" onClick={handleChangePassword}>Change password</Button>
             </div>
           </CardContent>
         </Card>
-
-        {/* Support Access Section */}
-         <Card>
-          <CardHeader>
-            <CardTitle>Support Access</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex-shrink min-w-0">
-                <h4 className="font-medium">Support access</h4>
-                <p className="text-sm text-muted-foreground">
-                  You have granted us to access to your account for support purposes.
-                </p>
-              </div>
-              <Switch defaultChecked />
-            </div>
-          </CardContent>
-        </Card>
-
+        
         {/* Log out & Delete Section */}
         <Card>
           <CardHeader>
@@ -368,11 +399,39 @@ export default function SettingsPage() {
                   Permanently delete the account and remove access from all workspaces.
                 </p>
               </div>
-              <Button variant="destructive" className="flex-shrink-0">Delete Account</Button>
+              <Button variant="destructive" className="flex-shrink-0" onClick={() => setIsDeleteAlertOpen(true)}>Delete Account</Button>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your account and all associated data. We recommend you back up your data first.
+              <br/><br/>
+              Please type <strong className="text-foreground">{user?.email}</strong> to confirm.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+           <Input 
+                type="email" 
+                placeholder="Enter your email to confirm" 
+                value={deleteConfirmationEmail}
+                onChange={(e) => setDeleteConfirmationEmail(e.target.value)}
+            />
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteConfirmationEmail('')}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+                onClick={handleDeleteAccount} 
+                disabled={deleteConfirmationEmail !== user?.email}
+                className="bg-destructive hover:bg-destructive/90">
+              Delete Account
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
