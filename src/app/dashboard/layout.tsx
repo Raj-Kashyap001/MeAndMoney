@@ -58,7 +58,6 @@ export default function DashboardLayout({
             <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
               <Logo />
             </Link>
-            <Separator className="my-2" />
           </div>
           <div className="flex-1">
             <MainNav isCollapsed={false} />
