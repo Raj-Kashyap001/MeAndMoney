@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Calendar as CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -32,20 +32,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
 import type { Goal, SavingStrategy } from '@/lib/types';
 import { useUser, useFirestore, addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
+import { cn } from '@/lib/utils';
+import { add, differenceInDays, differenceInWeeks, differenceInMonths, differenceInQuarters, differenceInYears, format } from 'date-fns';
 
 const goalSchema = z.object({
   name: z.string().min(2, { message: 'Goal name must be at least 2 characters.' }),
   targetAmount: z.coerce.number().positive({ message: 'Target amount must be positive.' }),
   currentAmount: z.coerce.number().min(0, { message: 'Current amount cannot be negative.' }),
+  targetDate: z.date({ required_error: 'A target date is required.'}),
   savingStrategy: z.enum(['daily', 'weekly', 'monthly', 'quarterly', 'yearly']),
   periodicContribution: z.coerce.number().positive({ message: 'Contribution must be positive.' })
 }).refine(data => data.currentAmount <= data.targetAmount, {
     message: "Current amount cannot be greater than the target amount.",
     path: ["currentAmount"],
+}).refine(data => data.targetDate > new Date(), {
+    message: "Target date must be in the future.",
+    path: ["targetDate"],
 });
 
 
@@ -74,10 +82,44 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
         name: '',
         targetAmount: 0,
         currentAmount: 0,
+        targetDate: add(new Date(), { years: 1 }),
         savingStrategy: 'monthly',
         periodicContribution: 0,
     }
   });
+  
+  const targetAmount = form.watch('targetAmount');
+  const currentAmount = form.watch('currentAmount');
+  const targetDate = form.watch('targetDate');
+  const savingStrategy = form.watch('savingStrategy');
+
+  useEffect(() => {
+    if (targetAmount && targetDate && savingStrategy) {
+      const remainingAmount = targetAmount - (currentAmount || 0);
+      if (remainingAmount <= 0) {
+        form.setValue('periodicContribution', 0);
+        return;
+      }
+      
+      const now = new Date();
+      let periods = 0;
+
+      switch(savingStrategy) {
+        case 'daily': periods = differenceInDays(targetDate, now); break;
+        case 'weekly': periods = differenceInWeeks(targetDate, now); break;
+        case 'monthly': periods = differenceInMonths(targetDate, now); break;
+        case 'quarterly': periods = differenceInQuarters(targetDate, now); break;
+        case 'yearly': periods = differenceInYears(targetDate, now); break;
+      }
+
+      if (periods > 0) {
+        const contribution = remainingAmount / periods;
+        form.setValue('periodicContribution', parseFloat(contribution.toFixed(2)));
+      } else {
+        form.setValue('periodicContribution', remainingAmount);
+      }
+    }
+  }, [targetAmount, currentAmount, targetDate, savingStrategy, form]);
 
   useEffect(() => {
     if (open) {
@@ -86,6 +128,7 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
           name: goal.name,
           targetAmount: goal.targetAmount,
           currentAmount: goal.currentAmount,
+          targetDate: new Date(goal.targetDate),
           savingStrategy: goal.savingStrategy as SavingStrategy,
           periodicContribution: goal.periodicContribution,
         });
@@ -94,6 +137,7 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
           name: '',
           targetAmount: 0,
           currentAmount: 0,
+          targetDate: add(new Date(), { years: 1 }),
           savingStrategy: 'monthly',
           periodicContribution: 0,
         });
@@ -112,6 +156,7 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
     const goalData = {
       ...values,
       userId: user.uid,
+      targetDate: values.targetDate.toISOString(),
     };
 
     try {
@@ -155,7 +200,7 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {trigger}
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className="sm:max-w-[520px]">
         <DialogHeader>
           <DialogTitle>{isEditMode ? 'Adjust Goal' : 'Add New Goal'}</DialogTitle>
           <DialogDescription>
@@ -207,6 +252,45 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
             </div>
              <div className="grid grid-cols-2 gap-4">
                <FormField
+                  control={form.control}
+                  name="targetDate"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col pt-2">
+                      <FormLabel>Target Date</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={'outline'}
+                              className={cn(
+                                'pl-3 text-left font-normal',
+                                !field.value && 'text-muted-foreground'
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, 'PPP')
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) => date <= new Date()}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+               <FormField
                 control={form.control}
                 name="savingStrategy"
                 render={({ field }) => (
@@ -230,14 +314,16 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
                   </FormItem>
                 )}
               />
-              <FormField
+            </div>
+            <div>
+               <FormField
                 control={form.control}
                 name="periodicContribution"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Contribution Amount</FormLabel>
+                    <FormLabel>Required Contribution</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="500.00" {...field} />
+                      <Input type="number" placeholder="500.00" {...field} readOnly className="bg-muted focus-visible:ring-0 focus-visible:ring-offset-0" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

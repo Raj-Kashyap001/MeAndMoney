@@ -164,6 +164,11 @@
           "type": "number",
           "description": "The current amount saved towards the goal."
         },
+        "targetDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The target date to achieve the goal."
+        },
         "savingStrategy": {
           "type": "string",
           "enum": ["daily", "weekly", "monthly", "quarterly", "yearly"],
@@ -174,7 +179,7 @@
             "description": "The calculated amount to be saved per period based on the strategy."
         }
       },
-      "required": ["userId", "name", "targetAmount", "currentAmount", "savingStrategy", "periodicContribution"]
+      "required": ["userId", "name", "targetAmount", "currentAmount", "targetDate", "savingStrategy", "periodicContribution"]
     },
     "Notification": {
       "title": "Notification",
@@ -240,5 +245,3 @@
     }
   }
 }
-
-    

@@ -17,6 +17,7 @@ import { useCurrency } from '@/components/currency-provider';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { ContributeToGoalDialog } from '@/components/contribute-to-goal-dialog';
+import { format } from 'date-fns';
 
 export default function GoalsPage() {
   const { user } = useUser();
@@ -101,7 +102,7 @@ export default function GoalsPage() {
               <CardHeader>
                 <CardTitle>{goal.name}</CardTitle>
                 <CardDescription>
-                  {`Save ${formatCurrency(goal.periodicContribution, currency)} ${goal.savingStrategy}`}
+                  Target: {format(new Date(goal.targetDate), 'MMM yyyy')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
@@ -109,6 +110,9 @@ export default function GoalsPage() {
                 <div className="flex justify-between text-sm font-medium">
                   <span>{formatCurrency(goal.currentAmount, currency)}</span>
                   <span className="text-muted-foreground">{formatCurrency(goal.targetAmount, currency)}</span>
+                </div>
+                 <div className="text-sm text-muted-foreground pt-2">
+                  {`Save ${formatCurrency(goal.periodicContribution, currency)} / ${goal.savingStrategy.replace('ly','')}`}
                 </div>
               </CardContent>
               <CardFooter className="gap-2">
