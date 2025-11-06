@@ -20,9 +20,9 @@ import { useEffect, useState } from 'react';
 
 export function UserNav() {
   const router = useRouter();
-  const [user, setUser] = useState<{name: string, email: string} | null>(null);
+  const [user, setUser] = useState<{name: string, email: string, avatarUrl?: string} | null>(null);
 
-  useEffect(() => {
+  const updateUserFromStorage = () => {
     if (typeof window !== 'undefined') {
       const session = localStorage.getItem('user_session');
       if (session) {
@@ -31,6 +31,20 @@ export function UserNav() {
         router.push('/');
       }
     }
+  }
+
+  useEffect(() => {
+    updateUserFromStorage();
+    
+    const handleStorageChange = () => {
+      updateUserFromStorage();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, [router]);
   
   const handleLogout = () => {
@@ -49,7 +63,7 @@ export function UserNav() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-9 w-9">
-            <AvatarImage src={`https://avatar.vercel.sh/${user?.email}.png`} alt={user?.name} />
+            <AvatarImage src={user?.avatarUrl || `https://avatar.vercel.sh/${user?.email}.png`} alt={user?.name} />
             <AvatarFallback>{user ? getInitials(user.name) : 'U'}</AvatarFallback>
           </Avatar>
         </Button>
@@ -65,7 +79,7 @@ export function UserNav() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem>Profile</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>Profile</DropdownMenuItem>
           <DropdownMenuItem>Billing</DropdownMenuItem>
           <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>Settings</DropdownMenuItem>
         </DropdownMenuGroup>
