@@ -11,12 +11,13 @@ import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { AddGoalDialog } from '@/components/add-goal-dialog';
 import { useUser, useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from '@/firebase';
-import { collection, query, doc } from 'firebase/firestore';
+import { collection, query, doc, where, getDocs } from 'firebase/firestore';
 import type { Goal } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCurrency } from '@/components/currency-provider';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { ContributeToGoalDialog } from '@/components/contribute-to-goal-dialog';
 
 export default function GoalsPage() {
   const { user } = useUser();
@@ -25,8 +26,10 @@ export default function GoalsPage() {
   const { toast } = useToast();
 
   const [goalToEdit, setGoalToEdit] = useState<Goal | undefined>(undefined);
+  const [goalToContribute, setGoalToContribute] = useState<Goal | undefined>(undefined);
   const [goalToDelete, setGoalToDelete] = useState<Goal | null>(null);
   const [isAddGoalOpen, setIsAddGoalOpen] = useState(false);
+  const [isContributeGoalOpen, setIsContributeGoalOpen] = useState(false);
 
   const goalsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -45,25 +48,32 @@ export default function GoalsPage() {
     setIsAddGoalOpen(true);
   };
   
-  const handleDelete = (goal: Goal) => {
+  const handleDelete = async (goal: Goal) => {
     if (!user) return;
+    // 1. Delete the goal document
     const goalDocRef = doc(firestore, `users/${user.uid}/goals`, goal.id);
     deleteDocumentNonBlocking(goalDocRef);
+    
+    // 2. Delete the associated budget document
+    const budgetCategory = `Goal: ${goal.name}`;
+    const budgetsRef = collection(firestore, `users/${user.uid}/budgets`);
+    const budgetQuery = query(budgetsRef, where("category", "==", budgetCategory));
+    const budgetSnapshot = await getDocs(budgetQuery);
+    if (!budgetSnapshot.empty) {
+      const budgetDoc = budgetSnapshot.docs[0];
+      deleteDocumentNonBlocking(budgetDoc.ref);
+    }
+
     toast({
       title: "Goal Deleted",
-      description: `The "${goal.name}" goal has been deleted.`,
+      description: `The "${goal.name}" goal and its linked budget have been deleted.`,
     });
     setGoalToDelete(null);
   };
 
   const handleContribute = (goal: Goal) => {
-    // This is a placeholder for a more complex contribution flow
-    // For now, we'll just open the edit dialog
-    handleEdit(goal);
-    toast({
-        title: 'Contribute to Goal',
-        description: 'You can add to your saved amount here.'
-    });
+    setGoalToContribute(goal);
+    setIsContributeGoalOpen(true);
   }
 
 
@@ -104,7 +114,7 @@ export default function GoalsPage() {
               </CardContent>
               <CardFooter className="gap-2">
                 <Button variant="outline" size="sm" className="w-full" onClick={() => handleEdit(goal)}>Adjust Goal</Button>
-                <Button variant="outline" size="sm" className="w-full" onClick={() => handleContribute(goal)}>Contribute</Button>
+                <Button size="sm" className="w-full" onClick={() => handleContribute(goal)}>Contribute</Button>
                 <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setGoalToDelete(goal)}>
                     <Trash2 className="h-4 w-4" />
                 </Button>
@@ -130,13 +140,23 @@ export default function GoalsPage() {
         <span />
       </AddGoalDialog>
 
+      {goalToContribute && (
+        <ContributeToGoalDialog
+          open={isContributeGoalOpen}
+          onOpenChange={setIsContributeGoalOpen}
+          goal={goalToContribute}
+        >
+          <span />
+        </ContributeToGoalDialog>
+      )}
+
       <AlertDialog open={!!goalToDelete} onOpenChange={(open) => !open && setGoalToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the goal for {'"'}
-              {goalToDelete?.name}{'"'}.
+              {goalToDelete?.name}{'"'} and its linked budget.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

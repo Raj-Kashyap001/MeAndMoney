@@ -5,8 +5,8 @@ import { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
-import { format } from 'date-fns';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { format, differenceInMonths } from 'date-fns';
+import { Calendar as CalendarIcon, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -58,6 +58,7 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
   const isEditMode = !!goal;
   const { user } = useUser();
   const firestore = useFirestore();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
 
   const open = controlledOpen ?? internalOpen;
@@ -87,11 +88,13 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
     }
   }, [goal, open, form]);
 
-  const onSubmit = (values: z.infer<typeof goalSchema>) => {
+  const onSubmit = async (values: z.infer<typeof goalSchema>) => {
     if (!user) {
       toast({ variant: 'destructive', title: 'Not authenticated' });
       return;
     }
+    
+    setIsSubmitting(true);
     
     const goalData = {
       ...values,
@@ -99,19 +102,46 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
       userId: user.uid,
     };
 
-    if (isEditMode && goal?.id) {
-      const goalDocRef = doc(firestore, `users/${user.uid}/goals`, goal.id);
-      setDocumentNonBlocking(goalDocRef, goalData, { merge: true });
-    } else {
-      const goalsCollection = collection(firestore, `users/${user.uid}/goals`);
-      addDocumentNonBlocking(goalsCollection, goalData);
+    try {
+        if (isEditMode && goal?.id) {
+            const goalDocRef = doc(firestore, `users/${user.uid}/goals`, goal.id);
+            setDocumentNonBlocking(goalDocRef, goalData, { merge: true });
+        } else {
+            // Create Goal
+            const goalsCollection = collection(firestore, `users/${user.uid}/goals`);
+            const goalRef = await addDocumentNonBlocking(goalsCollection, goalData);
+
+            // Calculate monthly contribution
+            const months = differenceInMonths(values.deadline, new Date());
+            const monthlyContribution = months > 0 ? (values.targetAmount - values.currentAmount) / months : (values.targetAmount - values.currentAmount);
+
+            // Create linked Budget
+            const budgetsCollection = collection(firestore, `users/${user.uid}/budgets`);
+            const budgetData = {
+                userId: user.uid,
+                category: `Goal: ${values.name}`,
+                amount: Math.max(0, monthlyContribution),
+                spent: 0,
+                isGoal: true, // Flag to identify goal-linked budgets
+                goalId: goalRef.id
+            };
+            addDocumentNonBlocking(budgetsCollection, budgetData);
+        }
+        
+        toast({
+        title: isEditMode ? 'Goal Updated' : 'Goal Added',
+        description: `Successfully ${isEditMode ? 'updated' : 'added'} the "${values.name}" goal. A new budget has been created.`,
+        });
+        setOpen(false);
+    } catch (e) {
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'There was an error saving your goal.'
+        });
+    } finally {
+        setIsSubmitting(false);
     }
-    
-    toast({
-      title: isEditMode ? 'Goal Updated' : 'Goal Added',
-      description: `Successfully ${isEditMode ? 'updated' : 'added'} the "${values.name}" goal.`,
-    });
-    setOpen(false);
   };
 
   const trigger = controlledOpen === undefined ? <DialogTrigger asChild>{children}</DialogTrigger> : children;
@@ -135,9 +165,9 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
                 <FormItem>
                   <FormLabel>Goal Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Emergency Fund" {...field} />
+                    <Input placeholder="e.g., Emergency Fund" {...field} disabled={isEditMode} />
                   </FormControl>
-                  <FormMessage />
+                  {isEditMode && <FormMessage>Goal name cannot be changed after creation.</FormMessage>}
                 </FormItem>
               )}
             />
@@ -196,7 +226,10 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
               )}
             />
             <DialogFooter>
-              <Button type="submit">{isEditMode ? 'Save Changes' : 'Add Goal'}</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isEditMode ? 'Save Changes' : 'Add Goal'}
+              </Button>
             </DialogFooter>
           </form>
         </Form>

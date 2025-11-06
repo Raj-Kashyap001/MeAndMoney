@@ -51,6 +51,14 @@ export default function BudgetsPage() {
   const { data: budgets, isLoading } = useCollection<Budget>(budgetsQuery);
 
   const handleEdit = (budget: Budget) => {
+    if (budget.isGoal) {
+        toast({
+            variant: 'default',
+            title: 'Goal-Linked Budget',
+            description: 'This budget is linked to a goal and cannot be edited directly. Adjust the goal instead.'
+        });
+        return;
+    }
     setBudgetToEdit(budget);
     setIsAddBudgetOpen(true);
   };
@@ -62,6 +70,15 @@ export default function BudgetsPage() {
 
   const handleDelete = (budget: Budget) => {
     if (!user) return;
+    if (budget.isGoal) {
+        toast({
+            variant: 'destructive',
+            title: 'Cannot Delete',
+            description: 'This budget is linked to a goal. Delete the goal to remove this budget.'
+        });
+        setBudgetToDelete(null);
+        return;
+    }
     const budgetDocRef = doc(firestore, `users/${user.uid}/budgets`, budget.id);
     deleteDocumentNonBlocking(budgetDocRef);
     toast({
@@ -92,7 +109,7 @@ export default function BudgetsPage() {
         {!isLoading && budgets && budgets.map((budget) => {
           const progress = (budget.spent / budget.amount) * 100;
           return (
-            <Card key={budget.id}>
+            <Card key={budget.id} className={cn(budget.isGoal && "bg-muted/50 border-dashed")}>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-lg font-medium">{budget.category}</CardTitle>
                 <CardDescription>{formatCurrency(budget.amount, currency)}</CardDescription>

@@ -29,7 +29,8 @@ export type Category =
   | 'Shopping'
   | 'Income'
   | 'Transfer'
-  | 'Other';
+  | 'Other'
+  | 'Savings';
 
 export type Transaction = {
   id: string;
@@ -38,16 +39,18 @@ export type Transaction = {
   description: string;
   amount: number;
   type: 'income' | 'expense';
-  category: Category;
+  category: Category | string;
   accountId: string;
 };
 
 export type Budget = {
   id: string;
   userId: string;
-  category: Category;
+  category: Category | string;
   amount: number;
   spent: number;
+  isGoal?: boolean;
+  goalId?: string;
 };
 
 export type Goal = {
