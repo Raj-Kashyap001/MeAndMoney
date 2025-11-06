@@ -159,24 +159,24 @@ export default function SettingsPage() {
             <CardTitle>Account Security</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-shrink min-w-0">
                 <Label htmlFor="email">Email</Label>
                 <Input id="email" type="email" defaultValue={user?.email || ''} disabled className="mt-1 max-w-sm" />
               </div>
-              <Button variant="outline">Change email</Button>
+              <Button variant="outline" className="flex-shrink-0">Change email</Button>
             </div>
             <Separator />
-            <div className="flex items-center justify-between">
-               <div>
+            <div className="flex items-center justify-between gap-4">
+               <div className="flex-shrink min-w-0">
                 <Label htmlFor="password">Password</Label>
                 <Input id="password" type="password" defaultValue="•••••••••••" disabled className="mt-1 max-w-sm" />
               </div>
-              <Button variant="outline">Change password</Button>
+              <Button variant="outline" className="flex-shrink-0">Change password</Button>
             </div>
             <Separator />
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-shrink min-w-0">
                 <h4 className="font-medium">2-Step Verification</h4>
                 <p className="text-sm text-muted-foreground">
                   Add an additional layer of security to your account during login.
@@ -193,8 +193,8 @@ export default function SettingsPage() {
             <CardTitle>Support Access</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-shrink min-w-0">
                 <h4 className="font-medium">Support access</h4>
                 <p className="text-sm text-muted-foreground">
                   You have granted us to access to your account for support purposes.
@@ -211,24 +211,24 @@ export default function SettingsPage() {
             <CardTitle>Session Management</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-shrink min-w-0">
                 <h4 className="font-medium">Log out of all devices</h4>
                 <p className="text-sm text-muted-foreground">
                   Log out of all other active sessions on other devices besides this one.
                 </p>
               </div>
-              <Button variant="outline">Log out</Button>
+              <Button variant="outline" className="flex-shrink-0">Log out</Button>
             </div>
             <Separator />
-             <div className="flex items-center justify-between">
-              <div>
+             <div className="flex items-center justify-between gap-4">
+              <div className="flex-shrink min-w-0">
                 <h4 className="font-medium text-destructive">Delete my account</h4>
                 <p className="text-sm text-muted-foreground">
                   Permanently delete the account and remove access from all workspaces.
                 </p>
               </div>
-              <Button variant="destructive">Delete Account</Button>
+              <Button variant="destructive" className="flex-shrink-0">Delete Account</Button>
             </div>
           </CardContent>
         </Card>
