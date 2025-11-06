@@ -217,16 +217,16 @@ export default function SettingsPage() {
           <CardContent className="space-y-6">
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div className="flex-shrink min-w-0">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" defaultValue={user?.email || ''} disabled className="mt-1 max-w-sm" />
+                <Label>Email</Label>
+                <p className="text-muted-foreground text-sm pt-1">{user?.email}</p>
               </div>
               <Button variant="outline" className="flex-shrink-0">Change email</Button>
             </div>
             <Separator />
             <div className="flex items-center justify-between gap-4 flex-wrap">
                <div className="flex-shrink min-w-0">
-                <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" defaultValue="•••••••••••" disabled className="mt-1 max-w-sm" />
+                <Label>Password</Label>
+                <p className="text-muted-foreground text-sm pt-1">••••••••••••</p>
               </div>
               <Button variant="outline" className="flex-shrink-0">Change password</Button>
             </div>
