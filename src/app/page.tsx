@@ -149,8 +149,8 @@ export default function LandingPage() {
                 )}
                 <div>
                   <span className="inline-block px-4 py-2 rounded-full bg-primary/10 text-primary font-semibold mb-4">Step 1</span>
-                  <h3 className="text-3xl font-bold mb-4">Link Your Accounts</h3>
-                  <p className="text-muted-foreground text-lg">Securely connect your bank accounts, credit cards, and loans using our encrypted integration. See your full financial picture in one place.</p>
+                  <h3 className="text-3xl font-bold mb-4">Create an Account</h3>
+                  <p className="text-muted-foreground text-lg">Start by signing up for a free MeAndMoney account. It's quick, easy, and the first step towards financial clarity.</p>
                 </div>
               </div>
               <div className="grid lg:grid-cols-2 gap-12 items-center">
