@@ -123,7 +123,7 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
 
   useEffect(() => {
     if (open) {
-      if (goal) {
+      if (isEditMode && goal) {
         form.reset({
           name: goal.name,
           targetAmount: goal.targetAmount,
@@ -143,7 +143,7 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
         });
       }
     }
-  }, [goal, open, form]);
+  }, [goal, open, form, isEditMode]);
 
   const onSubmit = async (values: z.infer<typeof goalSchema>) => {
     if (!user) {
@@ -267,7 +267,7 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
                                 !field.value && 'text-muted-foreground'
                               )}
                             >
-                              {field.value ? (
+                              {field.value instanceof Date && !isNaN(field.value.getTime()) ? (
                                 format(field.value, 'PPP')
                               ) : (
                                 <span>Pick a date</span>
