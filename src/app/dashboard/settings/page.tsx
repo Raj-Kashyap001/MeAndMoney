@@ -220,7 +220,6 @@ export default function SettingsPage() {
                 <Label>Email</Label>
                 <p className="text-muted-foreground text-sm pt-1">{user?.email}</p>
               </div>
-              <Button variant="outline" className="flex-shrink-0">Change email</Button>
             </div>
             <Separator />
             <div className="flex items-center justify-between gap-4 flex-wrap">
