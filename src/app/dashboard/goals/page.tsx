@@ -102,7 +102,7 @@ export default function GoalsPage() {
               <CardHeader>
                 <CardTitle>{goal.name}</CardTitle>
                 <CardDescription>
-                  Target: {format(new Date(goal.targetDate), 'MMM yyyy')}
+                  {goal.targetDate ? `Target: ${format(new Date(goal.targetDate), 'MMM yyyy')}` : 'No target date'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
