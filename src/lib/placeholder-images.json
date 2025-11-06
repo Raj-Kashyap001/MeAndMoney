@@ -8,9 +8,33 @@
     },
     {
       "id": "hero-bg",
-      "description": "An illustration of a person managing their finances on a laptop.",
+      "description": "An illustration of a person managing their finances on a laptop with the app logo on the screen.",
       "imageUrl": "https://images.unsplash.com/photo-1633114128174-2f8aa49759b0?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "imageHint": "finance growth"
+    },
+    {
+      "id": "how-it-works-1",
+      "description": "Illustration of linking bank accounts.",
+      "imageUrl": "https://images.unsplash.com/photo-1688854682321-62ad582df1fa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxsaW5raW5nJTIwYWNjb3VudHN8ZW58MHx8fHwxNzYyNDEyMTUzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "linking accounts"
+    },
+    {
+      "id": "how-it-works-2",
+      "description": "Illustration of tracking spending and charts.",
+      "imageUrl": "https://images.unsplash.com/photo-1650821414390-276561abd95a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxzcGVuZGluZyUyMGNoYXJ0fGVufDB8fHx8MTc2MjQxMjE1Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "spending chart"
+    },
+    {
+      "id": "how-it-works-3",
+      "description": "Illustration of a lightbulb for AI insights.",
+      "imageUrl": "https://images.unsplash.com/photo-1755853913084-c55e7ef1746b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxBSSUyMGlkZWF8ZW58MHx8fHwxNzYyNDEyMTUzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "AI idea"
+    },
+    {
+      "id": "demo-preview",
+      "description": "A preview of the app dashboard to represent a demo video.",
+      "imageUrl": "https://images.unsplash.com/photo-1742997734865-71d10c491be5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxkYXNoYm9hcmQlMjBwcmV2aWV3fGVufDB8fHx8MTc2MjQxMjE1M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "dashboard preview"
     }
   ]
 }
