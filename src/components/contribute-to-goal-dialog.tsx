@@ -37,6 +37,7 @@ import { collection, doc, query, where, getDocs } from 'firebase/firestore';
 import type { Account, Goal, Budget as Saving } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
+import { useCurrency } from '@/components/currency-provider';
 
 
 const contributionSchema = z.object({
@@ -57,6 +58,7 @@ export function ContributeToGoalDialog({ children, goal, open: controlledOpen, o
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
+  const { currency } = useCurrency();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const open = controlledOpen ?? internalOpen;
@@ -138,7 +140,7 @@ export function ContributeToGoalDialog({ children, goal, open: controlledOpen, o
         };
         addDocumentNonBlocking(transactionsCollection, transactionData);
         
-        const notificationMessage = `Successfully saved ${formatCurrency(values.amount, fromAccount.currency || 'USD')} for your "${goal.name}" goal.`;
+        const notificationMessage = `Successfully saved ${formatCurrency(values.amount, fromAccount.currency || currency)} for your "${goal.name}" goal.`;
         addDocumentNonBlocking(collection(firestore, `users/${user.uid}/notifications`), {
             userId: user.uid,
             message: notificationMessage,
@@ -150,7 +152,7 @@ export function ContributeToGoalDialog({ children, goal, open: controlledOpen, o
 
         toast({
             title: 'Contribution Successful!',
-            description: `You contributed ${formatCurrency(values.amount, fromAccount.currency)} to your "${goal.name}" goal.`,
+            description: `You contributed ${formatCurrency(values.amount, fromAccount.currency || currency)} to your "${goal.name}" goal.`,
         });
 
         setOpen(false);
@@ -175,7 +177,7 @@ export function ContributeToGoalDialog({ children, goal, open: controlledOpen, o
         <DialogHeader>
           <DialogTitle>Contribute to Goal</DialogTitle>
           <DialogDescription>
-            Add funds to your &quot;{goal.name}&quot; goal. Your current progress is {formatCurrency(goal.currentAmount, 'USD')} / {formatCurrency(goal.targetAmount, 'USD')}.
+            Add funds to your &quot;{goal.name}&quot; goal. Your current progress is {formatCurrency(goal.currentAmount, currency)} / {formatCurrency(goal.targetAmount, currency)}.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
