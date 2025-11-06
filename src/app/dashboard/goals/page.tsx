@@ -17,7 +17,7 @@ import { useCurrency } from '@/components/currency-provider';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { ContributeToGoalDialog } from '@/components/contribute-to-goal-dialog';
-import { format, addDays, addWeeks, addMonths, addQuarters, addYears } from 'date-fns';
+import { format, addDays, addWeeks, addMonths, addQuarters, addYears, isValid } from 'date-fns';
 
 export default function GoalsPage() {
   const { user } = useUser();
@@ -54,14 +54,16 @@ export default function GoalsPage() {
     const goalDocRef = doc(firestore, `users/${user.uid}/goals`, goal.id);
     deleteDocumentNonBlocking(goalDocRef);
     
-    // 2. Delete the associated budget document
-    const budgetCategory = `Goal: ${goal.name}`;
-    const budgetsRef = collection(firestore, `users/${user.uid}/budgets`);
-    const budgetQuery = query(budgetsRef, where("category", "==", budgetCategory));
-    const budgetSnapshot = await getDocs(budgetQuery);
-    if (!budgetSnapshot.empty) {
-      const budgetDoc = budgetSnapshot.docs[0];
-      deleteDocumentNonBlocking(budgetDoc.ref);
+    // 2. Delete the associated budget document if it exists
+    if (goal.savingStrategy !== 'self-dependent') {
+      const budgetCategory = `Goal: ${goal.name}`;
+      const budgetsRef = collection(firestore, `users/${user.uid}/budgets`);
+      const budgetQuery = query(budgetsRef, where("category", "==", budgetCategory));
+      const budgetSnapshot = await getDocs(budgetQuery);
+      if (!budgetSnapshot.empty) {
+        const budgetDoc = budgetSnapshot.docs[0];
+        deleteDocumentNonBlocking(budgetDoc.ref);
+      }
     }
 
     toast({
@@ -78,7 +80,7 @@ export default function GoalsPage() {
 
   const calculateExpectedCompletion = (goal: Goal): Date | null => {
     const remainingAmount = goal.targetAmount - goal.currentAmount;
-    if (goal.periodicContribution <= 0 || remainingAmount <= 0) {
+    if (goal.savingStrategy === 'self-dependent' || goal.periodicContribution <= 0 || remainingAmount <= 0) {
       return null;
     }
 
@@ -122,7 +124,10 @@ export default function GoalsPage() {
               <CardHeader>
                 <CardTitle>{goal.name}</CardTitle>
                 <CardDescription>
-                  {expectedCompletionDate ? `Est. Completion: ${format(expectedCompletionDate, 'MMM yyyy')}` : 'No active saving plan'}
+                  {goal.savingStrategy === 'self-dependent' 
+                    ? 'Self-dependent goal' 
+                    : (expectedCompletionDate ? `Est. Completion: ${format(expectedCompletionDate, 'MMM yyyy')}` : 'No active saving plan')
+                  }
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
@@ -131,9 +136,11 @@ export default function GoalsPage() {
                   <span>{formatCurrency(goal.currentAmount, currency)}</span>
                   <span className="text-muted-foreground">{formatCurrency(goal.targetAmount, currency)}</span>
                 </div>
-                 <div className="text-sm text-muted-foreground pt-2">
-                  {`Save ${formatCurrency(goal.periodicContribution, currency)} / ${goal.savingStrategy.replace('ly','')}`}
-                </div>
+                {goal.savingStrategy !== 'self-dependent' && (
+                  <div className="text-sm text-muted-foreground pt-2">
+                    {`Save ${formatCurrency(goal.periodicContribution, currency)} / ${goal.savingStrategy.replace('ly','')}`}
+                  </div>
+                )}
               </CardContent>
               <CardFooter className="gap-2">
                 <Button variant="outline" size="sm" className="w-full" onClick={() => handleEdit(goal)}>Adjust Goal</Button>

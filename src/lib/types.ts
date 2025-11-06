@@ -53,7 +53,7 @@ export type Budget = {
   goalId?: string;
 };
 
-export type SavingStrategy = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly';
+export type SavingStrategy = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' | 'self-dependent';
 
 export type Goal = {
   id: string;
@@ -61,7 +61,7 @@ export type Goal = {
   name: string;
   targetAmount: number;
   currentAmount: number;
-  targetDate: string;
+  targetDate: string; // This will be calculated and stored for structured goals.
   savingStrategy: SavingStrategy;
   periodicContribution: number;
 };
