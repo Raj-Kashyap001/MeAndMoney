@@ -353,3 +353,5 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
     </Dialog>
   );
 }
+
+    
