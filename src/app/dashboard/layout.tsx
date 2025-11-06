@@ -5,7 +5,6 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  Bell,
   PanelLeft,
   Search,
   Loader2
@@ -19,6 +18,7 @@ import { MainNav } from '@/components/main-nav';
 import { UserNav } from '@/components/user-nav';
 import { useUser } from '@/firebase';
 import { CurrencyProvider } from '@/components/currency-provider';
+import { NotificationBell } from '@/components/notification-bell';
 
 export default function DashboardLayout({
   children,
@@ -57,8 +57,8 @@ export default function DashboardLayout({
             </div>
           </div>
         </div>
-        <div className="flex flex-col">
-          <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6">
+        <div className="flex flex-col overflow-hidden">
+          <header className="flex h-14 shrink-0 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6">
             <Sheet>
               <SheetTrigger asChild>
                 <Button
@@ -93,10 +93,7 @@ export default function DashboardLayout({
                 </div>
               </form>
             </div>
-            <Button variant="outline" size="icon" className="h-8 w-8">
-              <Bell className="h-4 w-4" />
-              <span className="sr-only">Toggle notifications</span>
-            </Button>
+            <NotificationBell />
             <UserNav />
           </header>
           <main className="flex flex-1 flex-col gap-4 overflow-auto p-4 lg:gap-6 lg:p-6 bg-background">

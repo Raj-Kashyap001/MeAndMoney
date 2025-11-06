@@ -1,4 +1,5 @@
 
+
 export type UserProfile = {
   id: string;
   firstName: string;
@@ -15,6 +16,7 @@ export type Account = {
   type: 'bank' | 'card' | 'cash';
   balance: number;
   bankName?: string;
+  currency?: string;
 };
 
 export type Category =
@@ -65,5 +67,7 @@ export type Notification = {
   isRead: boolean;
   createdAt: string;
 };
+
+    
 
     

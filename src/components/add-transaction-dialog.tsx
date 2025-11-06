@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -37,10 +38,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 import { suggestTransactionCategory } from '@/app/actions';
-import { useUser, useFirestore, useCollection, addDocumentNonBlocking, useMemoFirebase } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, addDocumentNonBlocking, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { collection, query, doc } from 'firebase/firestore';
 import type { Account } from '@/lib/types';
 
 
@@ -76,6 +77,19 @@ export function AddTransactionDialog({ children }: { children: React.ReactNode }
       date: new Date(),
     },
   });
+  
+  useEffect(() => {
+    if (!open) {
+      form.reset({
+        type: 'expense',
+        amount: 0,
+        description: '',
+        date: new Date(),
+        accountId: undefined,
+        category: undefined
+      });
+    }
+  }, [open, form]);
 
   const handleSuggestCategory = async () => {
     const description = form.getValues('description');
@@ -120,24 +134,52 @@ export function AddTransactionDialog({ children }: { children: React.ReactNode }
   };
   
   const onSubmit = (values: z.infer<typeof transactionSchema>) => {
-    if (!user) {
-       toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in.' });
+    if (!user || !accounts) {
+       toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in and have accounts.' });
        return;
     }
     const transactionsCollection = collection(firestore, `users/${user.uid}/transactions`);
+    const notificationsCollection = collection(firestore, `users/${user.uid}/notifications`);
+    const accountRef = doc(firestore, `users/${user.uid}/accounts`, values.accountId);
+    
+    const account = accounts.find(a => a.id === values.accountId);
+    if (!account) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Selected account not found.' });
+      return;
+    }
 
+    // 1. Add the transaction
     addDocumentNonBlocking(transactionsCollection, {
         ...values,
         userId: user.uid,
-        date: values.date.toISOString() // Store date as ISO string
+        date: values.date.toISOString()
+    });
+
+    // 2. Update account balance
+    const newBalance = values.type === 'income' 
+      ? account.balance + values.amount 
+      : account.balance - values.amount;
+    updateDocumentNonBlocking(accountRef, { balance: newBalance });
+
+    // 3. Create a notification
+    const currency = account.currency || 'USD';
+    const notificationMessage = values.type === 'income'
+      ? `Credited ${formatCurrency(values.amount, currency)} for "${values.description}"`
+      : `Deducted ${formatCurrency(values.amount, currency)} for "${values.description}"`;
+    
+    addDocumentNonBlocking(notificationsCollection, {
+      userId: user.uid,
+      message: notificationMessage,
+      type: 'info',
+      isRead: false,
+      createdAt: new Date().toISOString()
     });
 
     toast({
       title: 'Transaction Added',
-      description: `Successfully added ${values.type} of ${values.amount}.`,
+      description: `Successfully added ${values.type} of ${formatCurrency(values.amount, currency)}.`,
     });
     setOpen(false);
-    form.reset();
   };
 
   const categories: string[] = ['Groceries', 'Dining', 'Entertainment', 'Utilities', 'Transportation', 'Healthcare', 'Shopping', 'Income', 'Transfer', 'Other'];
@@ -315,3 +357,5 @@ export function AddTransactionDialog({ children }: { children: React.ReactNode }
     </Dialog>
   );
 }
+
+    
