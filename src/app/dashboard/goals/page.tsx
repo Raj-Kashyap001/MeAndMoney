@@ -17,7 +17,7 @@ import { useCurrency } from '@/components/currency-provider';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { ContributeToGoalDialog } from '@/components/contribute-to-goal-dialog';
-import { format } from 'date-fns';
+import { format, addDays, addWeeks, addMonths, addQuarters, addYears } from 'date-fns';
 
 export default function GoalsPage() {
   const { user } = useUser();
@@ -76,6 +76,25 @@ export default function GoalsPage() {
     setIsContributeGoalOpen(true);
   }
 
+  const calculateExpectedCompletion = (goal: Goal): Date | null => {
+    const remainingAmount = goal.targetAmount - goal.currentAmount;
+    if (goal.periodicContribution <= 0 || remainingAmount <= 0) {
+      return null;
+    }
+
+    const periodsToComplete = Math.ceil(remainingAmount / goal.periodicContribution);
+    const now = new Date();
+
+    switch (goal.savingStrategy) {
+      case 'daily': return addDays(now, periodsToComplete);
+      case 'weekly': return addWeeks(now, periodsToComplete);
+      case 'monthly': return addMonths(now, periodsToComplete);
+      case 'quarterly': return addQuarters(now, periodsToComplete);
+      case 'yearly': return addYears(now, periodsToComplete);
+      default: return null;
+    }
+  };
+
 
   return (
     <>
@@ -97,12 +116,13 @@ export default function GoalsPage() {
         )}
         {!isLoading && goals && goals.map((goal) => {
           const progress = (goal.currentAmount / goal.targetAmount) * 100;
+          const expectedCompletionDate = calculateExpectedCompletion(goal);
           return (
             <Card key={goal.id}>
               <CardHeader>
                 <CardTitle>{goal.name}</CardTitle>
                 <CardDescription>
-                  {goal.targetDate ? `Target: ${format(new Date(goal.targetDate), 'MMM yyyy')}` : 'No target date'}
+                  {expectedCompletionDate ? `Est. Completion: ${format(expectedCompletionDate, 'MMM yyyy')}` : 'No active saving plan'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
