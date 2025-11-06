@@ -30,7 +30,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import type { Category } from '@/lib/types';
+import type { Category, Transaction } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { useCurrency } from '@/components/currency-provider';
 
@@ -39,12 +39,16 @@ interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   isLoading?: boolean;
+  onEdit: (data: TData) => void;
+  onDelete: (data: TData) => void;
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
-  isLoading = false
+  isLoading = false,
+  onEdit,
+  onDelete,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -65,6 +69,8 @@ export function DataTable<TData, TValue>({
     },
     meta: {
       currency,
+      onEdit,
+      onDelete
     }
   });
   
@@ -193,5 +199,3 @@ export function DataTable<TData, TValue>({
     </div>
   );
 }
-
-    

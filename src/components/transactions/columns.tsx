@@ -2,24 +2,26 @@
 'use client';
 
 import { ColumnDef } from '@tanstack/react-table';
-import { MoreHorizontal, ArrowUpDown } from 'lucide-react';
+import { MoreHorizontal, ArrowUpDown, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import type { Transaction, Category } from '@/lib/types';
+import type { Transaction } from '@/lib/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { useCurrency } from '@/components/currency-provider';
 
-// This is a workaround because we can't use hooks in the column definition directly
-// We'll pass the currency to the cell function via meta property on the table
-// See src/components/transactions/data-table.tsx
+type TableMeta = {
+  currency: string;
+  onEdit: (transaction: Transaction) => void;
+  onDelete: (transaction: Transaction) => void;
+}
 
 export const columns: ColumnDef<Transaction>[] = [
   {
@@ -67,19 +69,21 @@ export const columns: ColumnDef<Transaction>[] = [
     cell: ({ row, table }) => {
       const amount = parseFloat(row.getValue('amount'));
       const isExpense = row.original.type === 'expense';
-      const { currency } = table.options.meta as { currency: string };
+      const { currency } = table.options.meta as TableMeta;
       
       return (
-        <div className={cn('text-right font-medium', isExpense ? 'text-destructive' : 'text-green-600')}>
-          {formatCurrency(amount, currency)}
+        <div className={cn('text-right font-medium', isExpense ? 'text-destructive' : 'text-emerald-600')}>
+          {isExpense ? '-' : ''}{formatCurrency(amount, currency)}
         </div>
       );
     },
   },
   {
     id: 'actions',
-    cell: ({ row }) => {
+    cell: ({ row, table }) => {
       const transaction = row.original;
+      const { onEdit, onDelete } = table.options.meta as TableMeta;
+
       return (
         <div className="text-right">
           <DropdownMenu>
@@ -91,13 +95,13 @@ export const columns: ColumnDef<Transaction>[] = [
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem
-                onClick={() => navigator.clipboard.writeText(transaction.id)}
-              >
-                Copy transaction ID
+              <DropdownMenuItem onClick={() => onEdit(transaction)}>
+                <Pencil className="mr-2 h-4 w-4" /> Edit transaction
               </DropdownMenuItem>
-              <DropdownMenuItem>Edit transaction</DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive">Delete transaction</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-destructive" onClick={() => onDelete(transaction)}>
+                <Trash2 className="mr-2 h-4 w-4" /> Delete transaction
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -105,5 +109,3 @@ export const columns: ColumnDef<Transaction>[] = [
     },
   },
 ];
-
-    

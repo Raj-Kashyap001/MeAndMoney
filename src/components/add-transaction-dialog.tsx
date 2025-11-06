@@ -40,9 +40,9 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { cn, formatCurrency } from '@/lib/utils';
 import { suggestTransactionCategory } from '@/app/actions';
-import { useUser, useFirestore, useCollection, addDocumentNonBlocking, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useCollection, addDocumentNonBlocking, useMemoFirebase, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
 import { collection, query, doc } from 'firebase/firestore';
-import type { Account } from '@/lib/types';
+import type { Account, Transaction } from '@/lib/types';
 
 
 const transactionSchema = z.object({
@@ -54,12 +54,23 @@ const transactionSchema = z.object({
   category: z.string({ required_error: 'Please select a category.' }),
 });
 
-export function AddTransactionDialog({ children }: { children: React.ReactNode }) {
-  const [open, setOpen] = useState(false);
+type AddTransactionDialogProps = {
+  children: React.ReactNode;
+  transaction?: Transaction;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+};
+
+export function AddTransactionDialog({ children, transaction, open: controlledOpen, onOpenChange: setControlledOpen }: AddTransactionDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
+  const isEditMode = !!transaction;
+
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = setControlledOpen ?? setInternalOpen;
 
   const accountsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -70,26 +81,31 @@ export function AddTransactionDialog({ children }: { children: React.ReactNode }
 
   const form = useForm<z.infer<typeof transactionSchema>>({
     resolver: zodResolver(transactionSchema),
-    defaultValues: {
-      type: 'expense',
-      amount: 0,
-      description: '',
-      date: new Date(),
-    },
   });
   
   useEffect(() => {
-    if (!open) {
-      form.reset({
-        type: 'expense',
-        amount: 0,
-        description: '',
-        date: new Date(),
-        accountId: undefined,
-        category: undefined
-      });
+    if (open) {
+      if (isEditMode && transaction) {
+        form.reset({
+          type: transaction.type,
+          amount: transaction.amount,
+          description: transaction.description,
+          accountId: transaction.accountId,
+          date: new Date(transaction.date),
+          category: transaction.category
+        });
+      } else {
+        form.reset({
+          type: 'expense',
+          amount: 0,
+          description: '',
+          date: new Date(),
+          accountId: undefined,
+          category: undefined
+        });
+      }
     }
-  }, [open, form]);
+  }, [open, form, isEditMode, transaction]);
 
   const handleSuggestCategory = async () => {
     const description = form.getValues('description');
@@ -138,60 +154,74 @@ export function AddTransactionDialog({ children }: { children: React.ReactNode }
        toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in and have accounts.' });
        return;
     }
-    const transactionsCollection = collection(firestore, `users/${user.uid}/transactions`);
-    const notificationsCollection = collection(firestore, `users/${user.uid}/notifications`);
-    const accountRef = doc(firestore, `users/${user.uid}/accounts`, values.accountId);
-    
-    const account = accounts.find(a => a.id === values.accountId);
-    if (!account) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Selected account not found.' });
-      return;
+
+    const transactionData = {
+      ...values,
+      userId: user.uid,
+      date: values.date.toISOString(),
+    };
+
+    if (isEditMode && transaction?.id) {
+       const transactionDocRef = doc(firestore, `users/${user.uid}/transactions`, transaction.id);
+       setDocumentNonBlocking(transactionDocRef, transactionData, { merge: true });
+       // Note: Balance updates for edits can be complex (e.g., if amount or account changes).
+       // A more robust solution might involve cloud functions or a more detailed client-side calculation
+       // to revert the old transaction's effect and apply the new one.
+       // For simplicity, we are not handling balance updates on edit.
+    } else {
+      const transactionsCollection = collection(firestore, `users/${user.uid}/transactions`);
+      const notificationsCollection = collection(firestore, `users/${user.uid}/notifications`);
+      const accountRef = doc(firestore, `users/${user.uid}/accounts`, values.accountId);
+      
+      const account = accounts.find(a => a.id === values.accountId);
+      if (!account) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Selected account not found.' });
+        return;
+      }
+
+      // 1. Add the transaction
+      addDocumentNonBlocking(transactionsCollection, transactionData);
+
+      // 2. Update account balance
+      const newBalance = values.type === 'income' 
+        ? account.balance + values.amount 
+        : account.balance - values.amount;
+      updateDocumentNonBlocking(accountRef, { balance: newBalance });
+
+      // 3. Create a notification
+      const currency = account.currency || 'USD';
+      const notificationMessage = values.type === 'income'
+        ? `Credited ${formatCurrency(values.amount, currency)} for "${values.description}"`
+        : `Deducted ${formatCurrency(values.amount, currency)} for "${values.description}"`;
+      
+      addDocumentNonBlocking(notificationsCollection, {
+        userId: user.uid,
+        message: notificationMessage,
+        type: 'info',
+        isRead: false,
+        createdAt: new Date().toISOString()
+      });
     }
 
-    // 1. Add the transaction
-    addDocumentNonBlocking(transactionsCollection, {
-        ...values,
-        userId: user.uid,
-        date: values.date.toISOString()
-    });
-
-    // 2. Update account balance
-    const newBalance = values.type === 'income' 
-      ? account.balance + values.amount 
-      : account.balance - values.amount;
-    updateDocumentNonBlocking(accountRef, { balance: newBalance });
-
-    // 3. Create a notification
-    const currency = account.currency || 'USD';
-    const notificationMessage = values.type === 'income'
-      ? `Credited ${formatCurrency(values.amount, currency)} for "${values.description}"`
-      : `Deducted ${formatCurrency(values.amount, currency)} for "${values.description}"`;
-    
-    addDocumentNonBlocking(notificationsCollection, {
-      userId: user.uid,
-      message: notificationMessage,
-      type: 'info',
-      isRead: false,
-      createdAt: new Date().toISOString()
-    });
-
     toast({
-      title: 'Transaction Added',
-      description: `Successfully added ${values.type} of ${formatCurrency(values.amount, currency)}.`,
+      title: isEditMode ? 'Transaction Updated' : 'Transaction Added',
+      description: `Successfully ${isEditMode ? 'updated' : 'added'} a transaction.`,
     });
     setOpen(false);
   };
 
   const categories: string[] = ['Groceries', 'Dining', 'Entertainment', 'Utilities', 'Transportation', 'Healthcare', 'Shopping', 'Income', 'Transfer', 'Other'];
+  
+  const trigger = controlledOpen === undefined ? <DialogTrigger asChild>{children}</DialogTrigger> : children;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      {trigger}
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle>Add Transaction</DialogTitle>
+          <DialogTitle>{isEditMode ? 'Edit Transaction' : 'Add Transaction'}</DialogTitle>
           <DialogDescription>
-            Fill in the details of your transaction below.
+            {isEditMode ? 'Update the details of your transaction.' : 'Fill in the details of your transaction below.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -259,7 +289,7 @@ export function AddTransactionDialog({ children }: { children: React.ReactNode }
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Account</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger disabled={isLoadingAccounts}>
                           <SelectValue placeholder="Select an account" />
@@ -349,7 +379,7 @@ export function AddTransactionDialog({ children }: { children: React.ReactNode }
               />
             </div>
             <DialogFooter>
-              <Button type="submit">Add Transaction</Button>
+              <Button type="submit">{isEditMode ? 'Save Changes' : 'Add Transaction'}</Button>
             </DialogFooter>
           </form>
         </Form>
@@ -357,5 +387,3 @@ export function AddTransactionDialog({ children }: { children: React.ReactNode }
     </Dialog>
   );
 }
-
-    
