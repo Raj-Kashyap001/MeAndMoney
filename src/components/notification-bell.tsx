@@ -6,12 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, query, orderBy, limit, doc } from 'firebase/firestore';
 import type { Notification } from '@/lib/types';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Skeleton } from './ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
 const NotificationIcon = ({ type }: { type: Notification['type'] }) => {
   const icons = {
@@ -26,6 +27,7 @@ const NotificationIcon = ({ type }: { type: Notification['type'] }) => {
 export function NotificationBell() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
 
   const notificationsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -51,6 +53,17 @@ export function NotificationBell() {
     });
   };
 
+  const handleClearAll = () => {
+    if (!user || !notifications) return;
+    notifications.forEach(notif => {
+      const notifRef = doc(firestore, `users/${user.uid}/notifications`, notif.id);
+      deleteDocumentNonBlocking(notifRef);
+    });
+    toast({
+      title: "All notifications cleared",
+    });
+  };
+
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -67,9 +80,14 @@ export function NotificationBell() {
       <PopoverContent align="end" className="w-80 p-0">
         <div className="flex items-center justify-between border-b p-3">
           <h3 className="font-semibold">Notifications</h3>
-          <Button variant="link" size="sm" className="h-auto p-0" onClick={handleMarkAllAsRead} disabled={unreadCount === 0}>
-            Mark all as read
-          </Button>
+          <div className='flex items-center gap-2'>
+            <Button variant="link" size="sm" className="h-auto p-0" onClick={handleMarkAllAsRead} disabled={unreadCount === 0}>
+              Mark all as read
+            </Button>
+            <Button variant="link" size="sm" className="h-auto p-0 text-destructive" onClick={handleClearAll} disabled={!notifications || notifications.length === 0}>
+              Clear All
+            </Button>
+          </div>
         </div>
         <ScrollArea className="h-80">
           <div className="p-2">
@@ -116,5 +134,3 @@ export function NotificationBell() {
     </Popover>
   );
 }
-
-    
