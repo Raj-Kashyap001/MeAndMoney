@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -77,7 +77,7 @@ const GoogleIcon = () => (
     </svg>
   );
 
-export default function AuthPage() {
+function AuthForm() {
   const searchParams = useSearchParams();
   const [isLogin, setIsLogin] = useState(searchParams.get('mode') !== 'signup');
   const [isLoading, setIsLoading] = useState(false);
@@ -263,7 +263,141 @@ export default function AuthPage() {
     form.reset();
   };
 
+  if (isUserLoading || user) {
+    return <LoadingLogo />;
+  }
+
+  return (
+    <div className="mx-auto grid w-[380px] gap-8">
+      <div className="grid gap-4 text-center">
+          <Link href="/" className="flex justify-center items-center gap-2 font-semibold">
+            <Logo />
+          </Link>
+        <h1 className="text-3xl font-bold">
+          {isLogin ? 'Welcome Back' : 'Create an Account'}
+        </h1>
+        <p className="text-balance text-muted-foreground">
+          {isLogin
+            ? "Enter your credentials to access your financial dashboard."
+            : "Join us to take control of your finances."}
+        </p>
+      </div>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+          {!isLogin && (
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="John Doe" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email</FormLabel>
+                <FormControl>
+                  <Input placeholder="your@email.com" {...field} onChange={(e) => {
+                    field.onChange(e);
+                    setVerificationMessage(null);
+                  }} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <div className="flex items-center">
+                  <FormLabel>Password</FormLabel>
+                  {isLogin && (
+                    <AlertDialog open={isResetAlertOpen} onOpenChange={setIsResetAlertOpen}>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="link" type="button" className="ml-auto inline-block text-sm" onClick={() => setResetPasswordEmail(form.getValues('email'))}>
+                          Forgot password?
+                        </Button>
+                      </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Reset Password</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Enter your email address and we'll send you a link to reset your password.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <Input 
+                            type="email" 
+                            placeholder="your@email.com" 
+                            value={resetPasswordEmail}
+                            onChange={(e) => setResetPasswordEmail(e.target.value)}
+                          />
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleForgotPassword}>Send Reset Link</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
+                <FormControl>
+                  <Input type="password" placeholder="••••••••" {...field} onChange={(e) => {
+                    field.onChange(e);
+                    setVerificationMessage(null);
+                  }} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {verificationMessage && (
+            <Alert variant="default" className="bg-blue-50 border-blue-200 text-blue-800">
+              <Info className="h-4 w-4 !text-blue-800" />
+              <AlertDescription>
+                {verificationMessage}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isLogin ? 'Login' : 'Sign Up'}
+          </Button>
+          <Button variant="outline" className="w-full" type="button" disabled={isLoading || isGoogleLoading} onClick={handleGoogleSignIn}>
+              {isGoogleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
+            {isLogin ? 'Login with Google' : 'Sign up with Google'}
+          </Button>
+        </form>
+      </Form>
+      <div className="mt-4 text-center text-sm">
+        {isLogin ? "Don't have an account?" : 'Already have an account?'}
+        <Button
+          variant="link"
+          onClick={toggleForm}
+          className="underline"
+          disabled={isLoading || isGoogleLoading}
+        >
+          {isLogin ? 'Sign up' : 'Login'}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export default function AuthPage() {
   const loginBg = PlaceHolderImages.find((img) => img.id === 'login-bg');
+  const { user, isUserLoading } = useUser();
 
   if (isUserLoading || user) {
     return (
@@ -272,134 +406,13 @@ export default function AuthPage() {
       </div>
     );
   }
-
+  
   return (
     <div className="w-full h-screen lg:grid lg:min-h-screen lg:grid-cols-2">
       <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 h-full">
-        <div className="mx-auto grid w-[380px] gap-8">
-          <div className="grid gap-4 text-center">
-             <Link href="/" className="flex justify-center items-center gap-2 font-semibold">
-                <Logo />
-             </Link>
-            <h1 className="text-3xl font-bold">
-              {isLogin ? 'Welcome Back' : 'Create an Account'}
-            </h1>
-            <p className="text-balance text-muted-foreground">
-              {isLogin
-                ? "Enter your credentials to access your financial dashboard."
-                : "Join us to take control of your finances."}
-            </p>
-          </div>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
-              {!isLogin && (
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="John Doe" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input placeholder="your@email.com" {...field} onChange={(e) => {
-                        field.onChange(e);
-                        setVerificationMessage(null);
-                      }} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center">
-                      <FormLabel>Password</FormLabel>
-                      {isLogin && (
-                        <AlertDialog open={isResetAlertOpen} onOpenChange={setIsResetAlertOpen}>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="link" type="button" className="ml-auto inline-block text-sm" onClick={() => setResetPasswordEmail(form.getValues('email'))}>
-                              Forgot password?
-                            </Button>
-                          </AlertDialogTrigger>
-                           <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Reset Password</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Enter your email address and we'll send you a link to reset your password.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <Input 
-                                type="email" 
-                                placeholder="your@email.com" 
-                                value={resetPasswordEmail}
-                                onChange={(e) => setResetPasswordEmail(e.target.value)}
-                              />
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleForgotPassword}>Send Reset Link</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                      )}
-                    </div>
-                    <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} onChange={(e) => {
-                        field.onChange(e);
-                        setVerificationMessage(null);
-                      }} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {verificationMessage && (
-                <Alert variant="default" className="bg-blue-50 border-blue-200 text-blue-800">
-                  <Info className="h-4 w-4 !text-blue-800" />
-                  <AlertDescription>
-                    {verificationMessage}
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isLogin ? 'Login' : 'Sign Up'}
-              </Button>
-              <Button variant="outline" className="w-full" type="button" disabled={isLoading || isGoogleLoading} onClick={handleGoogleSignIn}>
-                 {isGoogleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
-                {isLogin ? 'Login with Google' : 'Sign up with Google'}
-              </Button>
-            </form>
-          </Form>
-          <div className="mt-4 text-center text-sm">
-            {isLogin ? "Don't have an account?" : 'Already have an account?'}
-            <Button
-              variant="link"
-              onClick={toggleForm}
-              className="underline"
-              disabled={isLoading || isGoogleLoading}
-            >
-              {isLogin ? 'Sign up' : 'Login'}
-            </Button>
-          </div>
-        </div>
+        <Suspense fallback={<LoadingLogo />}>
+          <AuthForm />
+        </Suspense>
       </div>
       <div className="hidden bg-muted lg:block relative">
         {loginBg && (
@@ -417,5 +430,3 @@ export default function AuthPage() {
     </div>
   );
 }
-
-    
