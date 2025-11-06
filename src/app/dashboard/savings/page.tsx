@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { PlusCircle, Trash2 } from 'lucide-react';
+import { PlusCircle, Trash2, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -132,6 +132,7 @@ export default function SavingsPage() {
           const goal = goals?.find(g => g.id === saving.goalId);
           const goalTitle = goal?.name.replace('Goal: ', '');
           const strategy = goal?.savingStrategy ? `this ${goal.savingStrategy.replace('ly', '')}` : '';
+          const isGoalReached = goal ? goal.currentAmount >= goal.targetAmount : false;
 
 
           return (
@@ -152,7 +153,14 @@ export default function SavingsPage() {
               </CardContent>
               <CardFooter className="gap-2">
                  {isGoalSaving ? (
-                     <Button size="sm" className="w-full" onClick={() => handleContribute(saving)}>Contribute</Button>
+                     isGoalReached ? (
+                        <Button size="sm" className="w-full bg-emerald-600 hover:bg-emerald-700 cursor-default" disabled>
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Goal Reached!
+                        </Button>
+                     ) : (
+                        <Button size="sm" className="w-full" onClick={() => handleContribute(saving)}>Contribute</Button>
+                     )
                  ) : (
                     <>
                         <Button variant="outline" size="sm" className="w-full" onClick={() => handleEdit(saving)}>
