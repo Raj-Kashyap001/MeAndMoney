@@ -61,13 +61,13 @@ export default function SettingsPage() {
     if (user) {
       const newName = `${firstName} ${lastName}`.trim();
       if(newName) {
-        const updatedUser = { ...user, name: newName };
+        const updatedUser = { ...user, name: newName, avatarUrl: avatarUrl };
         setUser(updatedUser);
         localStorage.setItem('user_session', JSON.stringify(updatedUser));
         window.dispatchEvent(new Event('storage'));
         toast({
-          title: 'Name Updated',
-          description: 'Your profile name has been successfully changed.',
+          title: 'Profile Updated',
+          description: 'Your profile has been successfully changed.',
         });
         setIsEditingName(false);
       } else {
@@ -95,11 +95,6 @@ export default function SettingsPage() {
       reader.onloadend = () => {
         const newAvatarUrl = reader.result as string;
         setAvatarUrl(newAvatarUrl);
-        updateLocalStorageAvatar(newAvatarUrl);
-        toast({
-          title: 'Profile Picture Updated',
-          description: 'Your new picture has been saved.',
-        });
       };
       reader.readAsDataURL(file);
     }
@@ -107,20 +102,6 @@ export default function SettingsPage() {
 
   const removePicture = () => {
     setAvatarUrl(undefined);
-    updateLocalStorageAvatar(undefined);
-    toast({
-      title: 'Profile Picture Removed',
-    });
-  };
-
-  const updateLocalStorageAvatar = (url: string | undefined) => {
-    if (user) {
-      const updatedUser = { ...user, avatarUrl: url };
-      setUser(updatedUser);
-      localStorage.setItem('user_session', JSON.stringify(updatedUser));
-      // Dispatch a storage event to notify other components like the UserNav
-      window.dispatchEvent(new Event('storage'));
-    }
   };
 
   const getInitials = (name: string) => {
@@ -152,30 +133,32 @@ export default function SettingsPage() {
                     {user ? getInitials(user.name) : <User />}
                   </AvatarFallback>
                 </Avatar>
-                 <div className="flex flex-col gap-2 w-full">
-                  <Button
-                    variant="outline"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Upload className="mr-2 h-4 w-4" />
-                    Change Image
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="text-destructive hover:bg-transparent hover:text-destructive hover:border-destructive border border-transparent"
-                    onClick={removePicture}
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Remove
-                  </Button>
-                </div>
-                <Input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handlePictureUpload}
-                  className="hidden"
-                  accept="image/png, image/jpeg, image/gif"
-                />
+                {isEditingName && (
+                  <div className="flex flex-col gap-2 w-full">
+                    <Button
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      Change Image
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="text-destructive hover:bg-transparent hover:text-destructive hover:border-destructive border border-transparent"
+                      onClick={removePicture}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Remove
+                    </Button>
+                    <Input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handlePictureUpload}
+                      className="hidden"
+                      accept="image/png, image/jpeg, image/gif"
+                    />
+                  </div>
+                )}
               </div>
 
               <Separator orientation="vertical" className="h-auto hidden md:block" />
@@ -194,14 +177,17 @@ export default function SettingsPage() {
                         <Input id="lastName" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Last Name"/>
                       </div>
                     </div>
-                    <div className="flex justify-end gap-2">
+                     <p className="text-sm text-muted-foreground pt-2">
+                      We support PNGs, JPEGs and GIFs under 2MB.
+                    </p>
+                    <div className="flex justify-end gap-2 pt-4">
                       <Button variant="ghost" size="sm" onClick={handleNameEditToggle}>
                         <X className="mr-2 h-4 w-4" />
                         Cancel
                       </Button>
                       <Button size="sm" onClick={handleNameSave}>
                         <Check className="mr-2 h-4 w-4" />
-                        Save
+                        Save Changes
                       </Button>
                     </div>
                   </div>
@@ -218,9 +204,6 @@ export default function SettingsPage() {
                     </Button>
                   </div>
                 )}
-                 <p className="text-sm text-muted-foreground mt-6">
-                  We support PNGs, JPEGs and GIFs under 2MB.
-                </p>
               </div>
             </div>
           </CardContent>
