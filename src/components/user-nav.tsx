@@ -17,9 +17,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 export function UserNav() {
   const router = useRouter();
+  const { toast } = useToast();
   const [user, setUser] = useState<{name: string, email: string, avatarUrl?: string} | null>(null);
 
   const updateUserFromStorage = () => {
@@ -51,6 +53,10 @@ export function UserNav() {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('user_session');
     }
+    toast({
+      title: 'Logged Out',
+      description: 'You have been successfully logged out.',
+    });
     router.push('/');
   };
   
@@ -84,7 +90,7 @@ export function UserNav() {
           <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>Settings</DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout}>
+        <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:bg-destructive focus:text-destructive-foreground">
           Log out
         </DropdownMenuItem>
       </DropdownMenuContent>

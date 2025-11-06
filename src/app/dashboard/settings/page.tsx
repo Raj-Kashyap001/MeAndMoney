@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Upload, User, Trash2, KeyRound, Mail, LogOut, ShieldAlert, Pencil, X, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/page-header';
@@ -32,6 +33,7 @@ export default function SettingsPage() {
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const router = useRouter();
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -45,6 +47,17 @@ export default function SettingsPage() {
       }
     }
   }, []);
+
+  const handleLogout = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('user_session');
+    }
+    toast({
+      title: 'Logged Out',
+      description: 'You have been successfully logged out.',
+    });
+    router.push('/');
+  };
 
   const handleNameEditToggle = () => {
     if (isEditingName) {
@@ -273,7 +286,7 @@ export default function SettingsPage() {
                   Log out of all other active sessions on other devices besides this one.
                 </p>
               </div>
-              <Button variant="outline" className="flex-shrink-0">Log out</Button>
+              <Button variant="outline" className="flex-shrink-0" onClick={handleLogout}>Log out</Button>
             </div>
             <Separator />
              <div className="flex items-center justify-between gap-4 flex-wrap">
