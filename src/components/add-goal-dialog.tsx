@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
-import { Loader2 } from 'lucide-react';
+import { CalendarIcon, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -36,12 +36,17 @@ import { useToast } from '@/hooks/use-toast';
 import type { Goal, SavingStrategy } from '@/lib/types';
 import { useUser, useFirestore, addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
-import { addDays, addWeeks, addMonths, addQuarters, addYears } from 'date-fns';
+import { format, differenceInDays, differenceInWeeks, differenceInMonths, differenceInQuarters, differenceInYears } from 'date-fns';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { Calendar } from './ui/calendar';
+import { cn } from '@/lib/utils';
+
 
 const goalSchema = z.object({
   name: z.string().min(2, { message: 'Goal name must be at least 2 characters.' }),
   targetAmount: z.coerce.number().positive({ message: 'Target amount must be positive.' }),
   currentAmount: z.coerce.number().min(0, { message: 'Current amount cannot be negative.' }),
+  targetDate: z.date().optional(),
   savingStrategy: z.enum(['daily', 'weekly', 'monthly', 'quarterly', 'yearly', 'self-dependent']),
   periodicContribution: z.coerce.number().optional()
 }).refine(data => data.currentAmount <= data.targetAmount, {
@@ -49,12 +54,12 @@ const goalSchema = z.object({
     path: ["currentAmount"],
 }).refine(data => {
     if (data.savingStrategy !== 'self-dependent') {
-        return data.periodicContribution && data.periodicContribution > 0;
+        return data.targetDate && data.targetDate > new Date();
     }
     return true;
 }, {
-    message: "Contribution must be positive for a structured saving plan.",
-    path: ["periodicContribution"],
+    message: "Target date must be in the future for a structured saving plan.",
+    path: ["targetDate"],
 });
 
 
@@ -85,10 +90,39 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
         currentAmount: 0,
         savingStrategy: 'monthly',
         periodicContribution: 0,
+        targetDate: undefined,
     }
   });
 
-  const savingStrategy = form.watch('savingStrategy');
+  const { watch, setValue } = form;
+  const savingStrategy = watch('savingStrategy');
+  const targetAmount = watch('targetAmount');
+  const currentAmount = watch('currentAmount');
+  const targetDate = watch('targetDate');
+
+  useEffect(() => {
+    if (savingStrategy !== 'self-dependent' && targetDate && targetAmount > currentAmount && targetDate > new Date()) {
+      const remainingAmount = targetAmount - currentAmount;
+      let periods = 1;
+      switch (savingStrategy) {
+        case 'daily': periods = differenceInDays(targetDate, new Date()); break;
+        case 'weekly': periods = differenceInWeeks(targetDate, new Date()); break;
+        case 'monthly': periods = differenceInMonths(targetDate, new Date()); break;
+        case 'quarterly': periods = differenceInQuarters(targetDate, new Date()); break;
+        case 'yearly': periods = differenceInYears(targetDate, new Date()); break;
+      }
+      
+      if (periods > 0) {
+        const contribution = remainingAmount / periods;
+        setValue('periodicContribution', parseFloat(contribution.toFixed(2)));
+      } else {
+        setValue('periodicContribution', remainingAmount);
+      }
+    } else {
+        setValue('periodicContribution', 0);
+    }
+  }, [savingStrategy, targetAmount, currentAmount, targetDate, setValue]);
+
 
   useEffect(() => {
     if (open) {
@@ -99,6 +133,7 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
           currentAmount: goal.currentAmount,
           savingStrategy: goal.savingStrategy as SavingStrategy,
           periodicContribution: goal.periodicContribution,
+          targetDate: goal.targetDate ? new Date(goal.targetDate) : undefined,
         });
       } else {
         form.reset({
@@ -107,6 +142,7 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
           currentAmount: 0,
           savingStrategy: 'monthly',
           periodicContribution: 0,
+          targetDate: undefined,
         });
       }
     }
@@ -120,23 +156,10 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
     
     setIsSubmitting(true);
     
-    let targetDate = new Date();
-    if(values.savingStrategy !== 'self-dependent' && values.periodicContribution) {
-        const remainingAmount = values.targetAmount - values.currentAmount;
-        const periods = Math.ceil(remainingAmount / values.periodicContribution);
-        switch(values.savingStrategy) {
-            case 'daily': targetDate = addDays(new Date(), periods); break;
-            case 'weekly': targetDate = addWeeks(new Date(), periods); break;
-            case 'monthly': targetDate = addMonths(new Date(), periods); break;
-            case 'quarterly': targetDate = addQuarters(new Date(), periods); break;
-            case 'yearly': targetDate = addYears(new Date(), periods); break;
-        }
-    }
-
     const goalData = {
       ...values,
       userId: user.uid,
-      targetDate: targetDate.toISOString(),
+      targetDate: values.targetDate ? values.targetDate.toISOString() : new Date().toISOString(),
       periodicContribution: values.periodicContribution || 0,
     };
 
@@ -262,19 +285,61 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
               {savingStrategy !== 'self-dependent' && (
                 <FormField
                   control={form.control}
-                  name="periodicContribution"
+                  name="targetDate"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contribution per Period</FormLabel>
-                      <FormControl>
-                        <Input type="number" placeholder="500.00" {...field} />
-                      </FormControl>
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Target Date</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={'outline'}
+                              className={cn(
+                                'pl-3 text-left font-normal',
+                                !field.value && 'text-muted-foreground'
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, 'PPP')
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) => date < new Date()}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               )}
             </div>
+
+            {savingStrategy !== 'self-dependent' && (
+              <FormField
+                control={form.control}
+                name="periodicContribution"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contribution per Period</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="0.00" {...field} readOnly className="bg-muted" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <DialogFooter>
               <Button type="submit" disabled={isSubmitting}>
