@@ -8,7 +8,6 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { formatCurrency } from '@/lib/utils';
-import { format } from 'date-fns';
 import { AddGoalDialog } from '@/components/add-goal-dialog';
 import { useUser, useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, query, doc, where, getDocs } from 'firebase/firestore';
@@ -102,7 +101,7 @@ export default function GoalsPage() {
               <CardHeader>
                 <CardTitle>{goal.name}</CardTitle>
                 <CardDescription>
-                  Deadline: {format(new Date(goal.deadline), 'MMMM d, yyyy')}
+                  {`Save ${formatCurrency(goal.periodicContribution, currency)} ${goal.savingStrategy}`}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">

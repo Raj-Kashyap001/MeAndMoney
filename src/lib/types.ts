@@ -53,13 +53,16 @@ export type Budget = {
   goalId?: string;
 };
 
+export type SavingStrategy = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly';
+
 export type Goal = {
   id: string;
   userId: string;
   name: string;
   targetAmount: number;
   currentAmount: number;
-  deadline: string;
+  savingStrategy: SavingStrategy;
+  periodicContribution: number;
 };
 
 export type Notification = {

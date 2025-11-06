@@ -5,8 +5,7 @@ import { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
-import { format, differenceInMonths } from 'date-fns';
-import { Calendar as CalendarIcon, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -26,11 +25,15 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
-import type { Goal } from '@/lib/types';
+import type { Goal, SavingStrategy } from '@/lib/types';
 import { useUser, useFirestore, addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 
@@ -38,7 +41,8 @@ const goalSchema = z.object({
   name: z.string().min(2, { message: 'Goal name must be at least 2 characters.' }),
   targetAmount: z.coerce.number().positive({ message: 'Target amount must be positive.' }),
   currentAmount: z.coerce.number().min(0, { message: 'Current amount cannot be negative.' }),
-  deadline: z.date({ required_error: 'A deadline is required.' }),
+  savingStrategy: z.enum(['daily', 'weekly', 'monthly', 'quarterly', 'yearly']),
+  periodicContribution: z.coerce.number().positive({ message: 'Contribution must be positive.' })
 }).refine(data => data.currentAmount <= data.targetAmount, {
     message: "Current amount cannot be greater than the target amount.",
     path: ["currentAmount"],
@@ -66,6 +70,13 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
 
   const form = useForm<z.infer<typeof goalSchema>>({
     resolver: zodResolver(goalSchema),
+    defaultValues: {
+        name: '',
+        targetAmount: 0,
+        currentAmount: 0,
+        savingStrategy: 'monthly',
+        periodicContribution: 0,
+    }
   });
 
   useEffect(() => {
@@ -75,14 +86,16 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
           name: goal.name,
           targetAmount: goal.targetAmount,
           currentAmount: goal.currentAmount,
-          deadline: new Date(goal.deadline),
+          savingStrategy: goal.savingStrategy as SavingStrategy,
+          periodicContribution: goal.periodicContribution,
         });
       } else {
         form.reset({
           name: '',
           targetAmount: 0,
           currentAmount: 0,
-          deadline: undefined,
+          savingStrategy: 'monthly',
+          periodicContribution: 0,
         });
       }
     }
@@ -98,7 +111,6 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
     
     const goalData = {
       ...values,
-      deadline: values.deadline.toISOString(),
       userId: user.uid,
     };
 
@@ -107,22 +119,16 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
             const goalDocRef = doc(firestore, `users/${user.uid}/goals`, goal.id);
             setDocumentNonBlocking(goalDocRef, goalData, { merge: true });
         } else {
-            // Create Goal
             const goalsCollection = collection(firestore, `users/${user.uid}/goals`);
             const goalRef = await addDocumentNonBlocking(goalsCollection, goalData);
 
-            // Calculate monthly contribution
-            const months = differenceInMonths(values.deadline, new Date());
-            const monthlyContribution = months > 0 ? (values.targetAmount - values.currentAmount) / months : (values.targetAmount - values.currentAmount);
-
-            // Create linked Saving Plan
             const savingsCollection = collection(firestore, `users/${user.uid}/budgets`);
             const savingData = {
                 userId: user.uid,
                 category: `Goal: ${values.name}`,
-                amount: Math.max(0, monthlyContribution),
+                amount: values.periodicContribution,
                 spent: 0,
-                isGoal: true, // Flag to identify goal-linked savings
+                isGoal: true,
                 goalId: goalRef.id
             };
             addDocumentNonBlocking(savingsCollection, savingData);
@@ -165,7 +171,7 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
                 <FormItem>
                   <FormLabel>Goal Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Emergency Fund" {...field} disabled={isEditMode} />
+                    <Input placeholder="e.g., New Graphics Card" {...field} disabled={isEditMode} />
                   </FormControl>
                   {isEditMode && <FormMessage>Goal name cannot be changed after creation.</FormMessage>}
                 </FormItem>
@@ -179,7 +185,7 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
                   <FormItem>
                     <FormLabel>Target Amount</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="1000.00" {...field} />
+                      <Input type="number" placeholder="20000.00" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -199,32 +205,45 @@ export function AddGoalDialog({ children, goal, open: controlledOpen, onOpenChan
                 )}
               />
             </div>
-            <FormField
-              control={form.control}
-              name="deadline"
-              render={({ field }) => (
-                <FormItem className="flex flex-col pt-2">
-                  <FormLabel>Deadline</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={'outline'}
-                          className={cn('pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}
-                        >
-                          {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+             <div className="grid grid-cols-2 gap-4">
+               <FormField
+                control={form.control}
+                name="savingStrategy"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Saving Strategy</FormLabel>
+                     <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a strategy" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="daily">Daily</SelectItem>
+                          <SelectItem value="weekly">Weekly</SelectItem>
+                          <SelectItem value="monthly">Monthly</SelectItem>
+                          <SelectItem value="quarterly">Quarterly</SelectItem>
+                          <SelectItem value="yearly">Yearly</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="periodicContribution"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contribution Amount</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="500.00" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <DialogFooter>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

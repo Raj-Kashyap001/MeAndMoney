@@ -26,12 +26,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-
-const getProgressColor = (value: number) => {
-  if (value > 90) return 'bg-destructive';
-  if (value > 75) return 'bg-yellow-500';
-  return 'bg-primary';
-};
+import { ContributeToGoalDialog } from '@/components/contribute-to-goal-dialog';
+import type { Goal } from '@/lib/types';
 
 export default function SavingsPage() {
   const { user } = useUser();
@@ -42,6 +38,9 @@ export default function SavingsPage() {
   const [savingToEdit, setSavingToEdit] = useState<Saving | undefined>(undefined);
   const [savingToDelete, setSavingToDelete] = useState<Saving | null>(null);
   const [isAddSavingOpen, setIsAddSavingOpen] = useState(false);
+  const [goalToContribute, setGoalToContribute] = useState<Goal | undefined>(undefined);
+  const [isContributeGoalOpen, setIsContributeGoalOpen] = useState(false);
+
 
   const savingsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -49,6 +48,13 @@ export default function SavingsPage() {
   }, [user, firestore]);
 
   const { data: savings, isLoading } = useCollection<Saving>(savingsQuery);
+  
+  const goalsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(collection(firestore, `users/${user.uid}/goals`));
+  }, [user, firestore]);
+
+  const { data: goals } = useCollection<Goal>(goalsQuery);
 
   const handleEdit = (saving: Saving) => {
     if (saving.isGoal) {
@@ -88,6 +94,20 @@ export default function SavingsPage() {
     setSavingToDelete(null);
   };
 
+  const handleContribute = (saving: Saving) => {
+    const relatedGoal = goals?.find(g => g.id === saving.goalId);
+    if (relatedGoal) {
+        setGoalToContribute(relatedGoal);
+        setIsContributeGoalOpen(true);
+    } else {
+        toast({
+            variant: 'destructive',
+            title: 'Goal not found',
+            description: 'Could not find the goal associated with this saving plan.'
+        })
+    }
+  }
+
   return (
     <>
       <PageHeader title="Savings" description="Manage your monthly savings plans.">
@@ -107,35 +127,42 @@ export default function SavingsPage() {
             ))
         )}
         {!isLoading && savings && savings.map((saving) => {
-          const progress = (saving.spent / saving.amount) * 100;
+          const progress = saving.amount > 0 ? (saving.spent / saving.amount) * 100 : 0;
+          const isGoalSaving = saving.isGoal;
+          const goal = goals?.find(g => g.id === saving.goalId);
+          const goalTitle = goal?.name.replace('Goal: ', '');
+          const strategy = goal?.savingStrategy ? `this ${goal.savingStrategy.replace('ly', '')}` : '';
+
+
           return (
             <Card key={saving.id} className={cn(saving.isGoal && "bg-muted/50 border-dashed")}>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-lg font-medium">{saving.category}</CardTitle>
-                <CardDescription>{formatCurrency(saving.amount, currency)}</CardDescription>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg font-medium">{isGoalSaving && goalTitle ? `Saving for ${goalTitle}` : saving.category}</CardTitle>
+                <CardDescription>{isGoalSaving ? `Amount to save ${strategy}` : 'Monthly Plan'}</CardDescription>
               </CardHeader>
               <CardContent>
+                 <p className="text-2xl font-bold text-primary mb-4">{formatCurrency(saving.amount, currency)}</p>
                 <div className="space-y-2">
-                  <Progress value={progress} indicatorClassName={getProgressColor(progress)} />
+                  <Progress value={progress} />
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Saved</span>
+                    <span className="text-muted-foreground">Saved so far</span>
                     <span className="font-medium">{formatCurrency(saving.spent, currency)}</span>
-                  </div>
-                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Remaining</span>
-                    <span className={cn("font-medium", saving.amount - saving.spent < 0 ? 'text-destructive' : 'text-emerald-600' )}>
-                        {formatCurrency(saving.amount - saving.spent, currency)}
-                    </span>
                   </div>
                 </div>
               </CardContent>
               <CardFooter className="gap-2">
-                 <Button variant="outline" size="sm" className="w-full" onClick={() => handleEdit(saving)}>
-                    Adjust Plan
-                 </Button>
-                 <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setSavingToDelete(saving)}>
-                    <Trash2 className="h-4 w-4" />
-                 </Button>
+                 {isGoalSaving ? (
+                     <Button size="sm" className="w-full" onClick={() => handleContribute(saving)}>Contribute</Button>
+                 ) : (
+                    <>
+                        <Button variant="outline" size="sm" className="w-full" onClick={() => handleEdit(saving)}>
+                            Adjust Plan
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setSavingToDelete(saving)}>
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </>
+                 )}
               </CardFooter>
             </Card>
           )
@@ -144,7 +171,7 @@ export default function SavingsPage() {
             <Card className="md:col-span-2 lg:col-span-3 flex items-center justify-center h-64">
                 <div className="text-center">
                     <h3 className="text-lg font-semibold">No Savings Plans Found</h3>
-                    <p className="text-muted-foreground">Create a saving plan to start tracking your goals.</p>
+                    <p className="text-muted-foreground">Create a saving plan or a goal to get started.</p>
                 </div>
             </Card>
         )}
@@ -157,6 +184,16 @@ export default function SavingsPage() {
       >
         <span />
       </AddBudgetDialog>
+
+      {goalToContribute && (
+        <ContributeToGoalDialog
+            open={isContributeGoalOpen}
+            onOpenChange={setIsContributeGoalOpen}
+            goal={goalToContribute}
+        >
+            <span />
+        </ContributeToGoalDialog>
+      )}
 
        <AlertDialog open={!!savingToDelete} onOpenChange={(open) => !open && setSavingToDelete(null)}>
         <AlertDialogContent>
