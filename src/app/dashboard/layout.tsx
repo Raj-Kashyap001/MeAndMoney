@@ -23,6 +23,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Logo } from '@/components/logo';
 import { MainNav } from '@/components/main-nav';
 import { UserNav } from '@/components/user-nav';
+import { Separator } from '@/components/ui/separator';
 
 export default function DashboardLayout({
   children,
@@ -82,6 +83,7 @@ export default function DashboardLayout({
                   </Link>
                 </SheetTitle>
               </SheetHeader>
+              <Separator className="my-2" />
               <MainNav isCollapsed={false} />
             </SheetContent>
           </Sheet>

@@ -6,21 +6,22 @@ export function Logo({ className }: { className?: string }) {
       <svg
         width="28"
         height="28"
-        viewBox="0 0 32 32"
+        viewBox="0 0 28 28"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         className="h-7 w-7"
       >
-        <circle cx="16" cy="16" r="16" fill="#EBF0FC" />
+        <rect width="28" height="28" rx="8" fill="#48EA98" />
         <path
-          d="M8 18L12.5 13L16.5 17L21 13L25 18"
-          stroke="#48EA98"
-          strokeWidth="3"
+          d="M8 16L12.5 11L16.5 15L21 11L25 16"
+          stroke="white"
+          strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
       </svg>
-      <span className="text-lg font-semibold">MeAndMoney</span>
+
+      <span className="text-lg font-semibold">MeAndMoney<sup className="text-xs ml-1">v1.0</sup></span>
     </div>
   );
 }
