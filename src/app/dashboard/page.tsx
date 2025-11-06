@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useMemo } from 'react';
 import { Wallet, TrendingUp, TrendingDown, Target } from 'lucide-react';
 import {
   Card,
@@ -13,7 +14,7 @@ import { PageHeader } from '@/components/page-header';
 import { formatCurrency } from '@/lib/utils';
 import { format, subDays } from 'date-fns';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, where, Timestamp } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import type { Account, Transaction, Budget as Saving } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCurrency } from '@/components/currency-provider';
@@ -25,8 +26,13 @@ export default function DashboardPage() {
   const firestore = useFirestore();
   const { currency } = useCurrency();
 
-  const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-  const startOfLast7Days = subDays(new Date(), 6);
+  const { startOfMonth, startOfLast7Days } = useMemo(() => {
+    const now = new Date();
+    return {
+      startOfMonth: new Date(now.getFullYear(), now.getMonth(), 1),
+      startOfLast7Days: subDays(now, 6)
+    };
+  }, []);
 
   const accountsQuery = useMemoFirebase(() =>
     user ? query(collection(firestore, `users/${user.uid}/accounts`)) : null,
@@ -47,7 +53,7 @@ export default function DashboardPage() {
 
   const totalBalance = accounts?.reduce((sum, acc) => sum + acc.balance, 0) ?? 0;
   
-  const { totalIncome, totalExpenses, recentTransactionsData } = useMemoFirebase(() => {
+  const { totalIncome, totalExpenses, recentTransactionsData } = useMemo(() => {
     if (!transactions) return { totalIncome: 0, totalExpenses: 0, recentTransactionsData: [] };
 
     const today = new Date();
@@ -57,7 +63,6 @@ export default function DashboardPage() {
     let totalIncome = 0;
     let totalExpenses = 0;
     
-    const sevenDaysAgo = subDays(new Date(), 6);
     const dateMap: { [key: string]: { income: number; expense: number } } = {};
 
     for (let i = 0; i < 7; i++) {
@@ -72,7 +77,7 @@ export default function DashboardPage() {
         else totalExpenses += t.amount;
       }
       
-      if (transactionDate >= sevenDaysAgo) {
+      if (transactionDate >= startOfLast7Days) {
         const formattedDate = format(transactionDate, 'MMM d');
         if (dateMap[formattedDate]) {
           if (t.type === 'income') {
@@ -92,10 +97,10 @@ export default function DashboardPage() {
 
 
     return { totalIncome, totalExpenses, recentTransactionsData };
-  }, [transactions]);
+  }, [transactions, startOfLast7Days]);
   
   
-  const spendingByCategory = useMemoFirebase(() => {
+  const spendingByCategory = useMemo(() => {
     if (!transactions) return [];
     
     const categoryMap: { [key: string]: number } = {};
@@ -165,3 +170,5 @@ export default function DashboardPage() {
     </>
   );
 }
+
+    
