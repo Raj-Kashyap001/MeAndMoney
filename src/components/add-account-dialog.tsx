@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -35,7 +36,7 @@ import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
 import { collection } from 'firebase/firestore';
 
 const accountSchema = z.object({
-  name: z.string().min(2, { message: 'Account name must be at least 2 characters.' }),
+  name: z.string().min(2, { message: 'Source name must be at least 2 characters.' }),
   type: z.enum(['bank', 'card', 'cash']),
   balance: z.coerce.number(),
   bankName: z.string().optional(),
@@ -59,7 +60,7 @@ export function AddAccountDialog({ children }: { children: React.ReactNode }) {
 
   const onSubmit = (values: z.infer<typeof accountSchema>) => {
     if (!user) {
-      toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to add an account.' });
+      toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to add a source.' });
       return;
     }
     
@@ -70,8 +71,8 @@ export function AddAccountDialog({ children }: { children: React.ReactNode }) {
     });
 
     toast({
-      title: 'Account Added',
-      description: `Successfully added the "${values.name}" account.`,
+      title: 'Source Added',
+      description: `Successfully added the "${values.name}" source.`,
     });
     setOpen(false);
     form.reset();
@@ -82,9 +83,9 @@ export function AddAccountDialog({ children }: { children: React.ReactNode }) {
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add New Account</DialogTitle>
+          <DialogTitle>Add New Source</DialogTitle>
           <DialogDescription>
-            Enter the details for your new account.
+            Enter the details for your new money source.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -94,9 +95,9 @@ export function AddAccountDialog({ children }: { children: React.ReactNode }) {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Account Name</FormLabel>
+                  <FormLabel>Source Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Main Checking" {...field} />
+                    <Input placeholder="e.g., Wallet" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -107,11 +108,11 @@ export function AddAccountDialog({ children }: { children: React.ReactNode }) {
               name="type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Account Type</FormLabel>
+                  <FormLabel>Source Type</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select an account type" />
+                        <SelectValue placeholder="Select a source type" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -129,7 +130,7 @@ export function AddAccountDialog({ children }: { children: React.ReactNode }) {
               name="bankName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Bank Name (Optional)</FormLabel>
+                  <FormLabel>Institution Name (Optional)</FormLabel>
                   <FormControl>
                     <Input placeholder="e.g., Chase Bank" {...field} />
                   </FormControl>
@@ -151,7 +152,7 @@ export function AddAccountDialog({ children }: { children: React.ReactNode }) {
               )}
             />
             <DialogFooter>
-              <Button type="submit">Add Account</Button>
+              <Button type="submit">Add Source</Button>
             </DialogFooter>
           </form>
         </Form>

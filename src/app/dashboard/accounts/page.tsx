@@ -51,23 +51,23 @@ export default function AccountsPage() {
 
   return (
     <>
-      <PageHeader title="Accounts" description="Manage your connected accounts.">
+      <PageHeader title="Money Sources" description="Manage where your money is stored.">
         <AddAccountDialog>
           <Button>
             <PlusCircle className="mr-2 h-4 w-4" />
-            Add Account
+            Add Source
           </Button>
         </AddAccountDialog>
       </PageHeader>
       <Card>
         <CardHeader>
-          <CardTitle>Your Accounts</CardTitle>
+          <CardTitle>Your Money Sources</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Account</TableHead>
+                <TableHead>Source</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead className="text-right">Balance</TableHead>
                 <TableHead>
@@ -122,7 +122,7 @@ export default function AccountsPage() {
                {!isLoading && (!accounts || accounts.length === 0) && (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center h-24">
-                    No accounts found. Add one to get started!
+                    No sources found. Add one to get started!
                   </TableCell>
                 </TableRow>
               )}
@@ -133,5 +133,3 @@ export default function AccountsPage() {
     </>
   );
 }
-
-    
