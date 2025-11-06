@@ -1,6 +1,6 @@
 'use client';
 
-import { PlusCircle, Landmark, CreditCard, Wallet } from 'lucide-react';
+import { PlusCircle, Landmark, CreditCard, Wallet, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,12 +18,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { mockAccounts } from '@/lib/data';
-import { formatCurrency } from '@/lib/utils';
-import { cn } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
 import { AddAccountDialog } from '@/components/add-account-dialog';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
+import type { Account } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const AccountIcon = ({ type }: { type: 'bank' | 'card' | 'cash' }) => {
   const icons = {
@@ -35,6 +36,16 @@ const AccountIcon = ({ type }: { type: 'bank' | 'card' | 'cash' }) => {
 };
 
 export default function AccountsPage() {
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const accountsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(collection(firestore, `users/${user.uid}/accounts`));
+  }, [user, firestore]);
+
+  const { data: accounts, isLoading } = useCollection<Account>(accountsQuery);
+
   return (
     <>
       <PageHeader title="Accounts" description="Manage your connected accounts.">
@@ -62,7 +73,17 @@ export default function AccountsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockAccounts.map((account) => (
+              {isLoading && (
+                <>
+                  <TableRow>
+                    <TableCell colSpan={4}><Skeleton className="h-8 w-full" /></TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell colSpan={4}><Skeleton className="h-8 w-full" /></TableCell>
+                  </TableRow>
+                </>
+              )}
+              {!isLoading && accounts && accounts.map((account) => (
                 <TableRow key={account.id}>
                   <TableCell>
                     <div className="flex items-center gap-4">
@@ -95,6 +116,13 @@ export default function AccountsPage() {
                   </TableCell>
                 </TableRow>
               ))}
+               {!isLoading && (!accounts || accounts.length === 0) && (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center h-24">
+                    No accounts found. Add one to get started!
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>

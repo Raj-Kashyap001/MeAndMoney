@@ -1,230 +1,175 @@
 {
   "entities": {
-    "Account": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Account",
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Represents a user's public and private profile information.",
       "type": "object",
-      "description": "Represents a user's financial account (e.g., bank account, credit card, cash).",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the account."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N Account)"
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the account (e.g., Checking, Savings, Credit Card)."
-        },
-        "type": {
-          "type": "string",
-          "description": "Type of account (e.g., bank, cash, card)."
-        },
-        "balance": {
-          "type": "number",
-          "description": "Current balance of the account."
-        },
-        "syncStatus": {
-          "type": "string",
-          "description": "Status of the account synchronization (e.g., synced, pending, error)."
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "name",
-        "type",
-        "balance"
-      ]
-    },
-    "Transaction": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Transaction",
-      "type": "object",
-      "description": "Represents a financial transaction.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the transaction."
-        },
-        "accountId": {
-          "type": "string",
-          "description": "Reference to Account. (Relationship: Account 1:N Transaction)"
-        },
-        "categoryId": {
-          "type": "string",
-          "description": "Reference to Category. (Relationship: Category 1:N Transaction)"
-        },
-        "date": {
-          "type": "string",
-          "description": "Date of the transaction.",
-          "format": "date-time"
-        },
-        "amount": {
-          "type": "number",
-          "description": "Amount of the transaction."
-        },
-        "description": {
-          "type": "string",
-          "description": "Description of the transaction."
-        }
-      },
-      "required": [
-        "id",
-        "accountId",
-        "categoryId",
-        "date",
-        "amount",
-        "description"
-      ]
-    },
-    "Category": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Category",
-      "type": "object",
-      "description": "Represents a category for classifying transactions (e.g., Food, Transportation, Entertainment).",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the category."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N Category)"
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the category."
-        },
-        "budgetedAmount": {
-          "type": "number",
-          "description": "Budgeted amount for the category."
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "name",
-        "budgetedAmount"
-      ]
-    },
-    "User": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "User",
-      "type": "object",
-      "description": "Represents a user of the application.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the user."
+          "description": "The user's unique ID, matching their Auth UID."
         },
         "email": {
           "type": "string",
-          "description": "Email address of the user.",
-          "format": "email"
+          "format": "email",
+          "description": "The user's primary email address."
         },
-        "salary": {
-          "type": "number",
-          "description": "User's monthly salary."
+        "firstName": {
+          "type": "string",
+          "description": "The user's first name."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "The user's last name."
+        },
+        "photoURL": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL for the user's profile picture."
         }
       },
-      "required": [
-        "id",
-        "email"
-      ]
+      "required": ["id", "email"]
+    },
+    "Account": {
+      "title": "Account",
+      "description": "Represents a user's financial account (e.g., bank account, credit card).",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user who owns this account."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the account (e.g., 'Chase Checking')."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["bank", "card", "cash"],
+          "description": "The type of the financial account."
+        },
+        "balance": {
+          "type": "number",
+          "description": "The current balance of the account."
+        },
+        "bankName": {
+          "type": "string",
+          "description": "The name of the financial institution."
+        }
+      },
+      "required": ["userId", "name", "type", "balance"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Represents a single financial transaction.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user who owns this transaction."
+        },
+        "accountId": {
+          "type": "string",
+          "description": "The ID of the account this transaction belongs to."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the transaction."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The monetary value of the transaction."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["income", "expense"],
+          "description": "The type of transaction."
+        },
+        "category": {
+          "type": "string",
+          "description": "The category assigned to the transaction."
+        },
+        "date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date and time the transaction occurred."
+        }
+      },
+      "required": ["userId", "accountId", "description", "amount", "type", "category", "date"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Represents a user-defined category for transactions.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user who owns this category."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the category (e.g., 'Groceries')."
+        }
+      },
+      "required": ["userId", "name"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "Represents a notification for a user.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user this notification is for."
+        },
+        "message": {
+          "type": "string",
+          "description": "The content of the notification message."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["info", "warning", "alert", "ai"],
+          "description": "The type of notification."
+        },
+        "isRead": {
+          "type": "boolean",
+          "description": "Whether the user has read the notification."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the notification was created."
+        }
+      },
+      "required": ["userId", "message", "type", "isRead", "createdAt"]
     }
   },
   "auth": {
     "providers": [
       "password",
-      "anonymous"
+      "google.com"
     ]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/users/{userId}",
-        "definition": {
-          "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Stores user profile information.  Root document for user-specific data.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/accounts/{accountId}",
-        "definition": {
-          "entityName": "Account",
-          "schema": {
-            "$ref": "#/backend/entities/Account"
-          },
-          "description": "Stores user account data. Includes denormalized 'userId' for authorization independence.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "accountId",
-              "description": "The unique identifier for the account."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/accounts/{accountId}/transactions/{transactionId}",
-        "definition": {
-          "entityName": "Transaction",
-          "schema": {
-            "$ref": "#/backend/entities/Transaction"
-          },
-          "description": "Stores transaction data for each account. Transactions are nested under accounts for easy access. Denormalizes 'accountId' for transaction authorization and 'categoryId' for lookup.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "accountId",
-              "description": "The unique identifier for the account."
-            },
-            {
-              "name": "transactionId",
-              "description": "The unique identifier for the transaction."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/categories/{categoryId}",
-        "definition": {
-          "entityName": "Category",
-          "schema": {
-            "$ref": "#/backend/entities/Category"
-          },
-          "description": "Stores categories for each user. Includes denormalized 'userId' for authorization independence.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "categoryId",
-              "description": "The unique identifier for the category."
-            }
-          ]
-        }
-      }
-    ],
-    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging, adhering to the core design principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Rules are not Filters). It leverages structural segregation and access modeling for enhanced security.\n\n**Authorization Independence:** Achieved through denormalization of authorization data. For example, the `Account` and `Category` documents include the `userId` field, enabling direct ownership-based security rules without needing to perform `get()` operations on parent documents. Similarly, `Transaction` documents contain `accountId` and `categoryId` which allows direct validation for ownership.\n\n**QAPs (Rules are not Filters):** The structure ensures secure `list` operations by segregating data based on ownership. Each top-level collection related to a user (accounts, categories) is scoped to the user's ID, which allows for efficient filtering of list operations using simple equality checks (`request.auth.uid == resource.data.userId`).\n\n**Access Modeling:**\n*   Private data is managed using path-based ownership (`/users/{userId}/accounts/{accountId}`).\n*   Hierarchical paths are used for entities representing 1:N relationships (e.g., `/users/{userId}/accounts/{accountId}/transactions/{transactionId}`).\n\nThis structure avoids hierarchical authorization dependencies, which simplifies security rules and enhances the robustness and atomicity of database operations. The denormalization strategy minimizes `get()` calls, improving performance and reducing the risk of cascading failures. The clear separation of data based on ownership facilitates secure and efficient data retrieval while maintaining a high level of security and ease of maintenance."
+    "'/users/{userId}'": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Stores public and private information for a user."
+    },
+    "'/users/{userId}/accounts/{accountId}'": {
+      "schema": { "$ref": "#/entities/Account" },
+      "description": "Stores financial accounts for a specific user."
+    },
+    "'/users/{userId}/transactions/{transactionId}'": {
+      "schema": { "$ref": "#/entities/Transaction" },
+      "description": "Stores all transactions for a specific user."
+    },
+    "'/users/{userId}/categories/{categoryId}'": {
+      "schema": { "$ref": "#/entities/Category" },
+      "description": "Stores custom spending categories for a specific user."
+    },
+    "'/users/{userId}/notifications/{notificationId}'": {
+      "schema": { "$ref": "#/entities/Notification" },
+      "description": "Stores notifications for a specific user."
+    }
   }
 }

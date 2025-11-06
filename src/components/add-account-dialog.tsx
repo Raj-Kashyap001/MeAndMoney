@@ -31,6 +31,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
+import { collection } from 'firebase/firestore';
 
 const accountSchema = z.object({
   name: z.string().min(2, { message: 'Account name must be at least 2 characters.' }),
@@ -42,6 +44,8 @@ const accountSchema = z.object({
 export function AddAccountDialog({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
+  const { user } = useUser();
+  const firestore = useFirestore();
 
   const form = useForm<z.infer<typeof accountSchema>>({
     resolver: zodResolver(accountSchema),
@@ -54,8 +58,17 @@ export function AddAccountDialog({ children }: { children: React.ReactNode }) {
   });
 
   const onSubmit = (values: z.infer<typeof accountSchema>) => {
-    // In a real app, you'd handle the form submission, e.g., send to an API
-    console.log(values);
+    if (!user) {
+      toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to add an account.' });
+      return;
+    }
+    
+    const accountsCollection = collection(firestore, `users/${user.uid}/accounts`);
+    addDocumentNonBlocking(accountsCollection, {
+      ...values,
+      userId: user.uid,
+    });
+
     toast({
       title: 'Account Added',
       description: `Successfully added the "${values.name}" account.`,
@@ -113,7 +126,7 @@ export function AddAccountDialog({ children }: { children: React.ReactNode }) {
             />
             <FormField
               control={form.control}
-      name="bankName"
+              name="bankName"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Bank Name (Optional)</FormLabel>

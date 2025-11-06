@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -38,8 +38,11 @@ import { Calendar } from '@/components/ui/calendar';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { mockAccounts } from '@/lib/data';
 import { suggestTransactionCategory } from '@/app/actions';
+import { useUser, useFirestore, useCollection, addDocumentNonBlocking, useMemoFirebase } from '@/firebase';
+import { collection, query } from 'firebase/firestore';
+import type { Account } from '@/lib/types';
+
 
 const transactionSchema = z.object({
   type: z.enum(['income', 'expense']),
@@ -54,6 +57,15 @@ export function AddTransactionDialog({ children }: { children: React.ReactNode }
   const [open, setOpen] = useState(false);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const { toast } = useToast();
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const accountsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(collection(firestore, `users/${user.uid}/accounts`));
+  }, [user, firestore]);
+
+  const { data: accounts, isLoading: isLoadingAccounts } = useCollection<Account>(accountsQuery);
 
   const form = useForm<z.infer<typeof transactionSchema>>({
     resolver: zodResolver(transactionSchema),
@@ -69,7 +81,7 @@ export function AddTransactionDialog({ children }: { children: React.ReactNode }
     const description = form.getValues('description');
     const amount = form.getValues('amount');
     const accountId = form.getValues('accountId');
-    const account = mockAccounts.find(a => a.id === accountId);
+    const account = accounts?.find(a => a.id === accountId);
     
     if (!description || !amount || !account) {
       toast({
@@ -108,7 +120,18 @@ export function AddTransactionDialog({ children }: { children: React.ReactNode }
   };
   
   const onSubmit = (values: z.infer<typeof transactionSchema>) => {
-    console.log(values);
+    if (!user) {
+       toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in.' });
+       return;
+    }
+    const transactionsCollection = collection(firestore, `users/${user.uid}/transactions`);
+
+    addDocumentNonBlocking(transactionsCollection, {
+        ...values,
+        userId: user.uid,
+        date: values.date.toISOString() // Store date as ISO string
+    });
+
     toast({
       title: 'Transaction Added',
       description: `Successfully added ${values.type} of ${values.amount}.`,
@@ -196,12 +219,12 @@ export function AddTransactionDialog({ children }: { children: React.ReactNode }
                     <FormLabel>Account</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger disabled={isLoadingAccounts}>
                           <SelectValue placeholder="Select an account" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {mockAccounts.map((account) => (
+                        {accounts?.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
                             {account.name}
                           </SelectItem>
@@ -236,7 +259,7 @@ export function AddTransactionDialog({ children }: { children: React.ReactNode }
                         ))}
                       </SelectContent>
                     </Select>
-                    <Button variant="outline" size="icon" type="button" onClick={handleSuggestCategory} disabled={isSuggesting}>
+                    <Button variant="outline" size="icon" type="button" onClick={handleSuggestCategory} disabled={isSuggesting || isLoadingAccounts}>
                       <Sparkles className={cn("h-4 w-4", isSuggesting && "animate-spin")} />
                     </Button>
                     </div>
