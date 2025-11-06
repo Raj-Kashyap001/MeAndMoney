@@ -37,6 +37,7 @@ import {
 } from 'firebase/auth';
 import { doc, getFirestore } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { LoadingLogo } from '@/components/loading-logo';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
@@ -210,7 +211,7 @@ export default function AuthPage() {
   if (isUserLoading || user) {
     return (
       <div className="flex h-screen w-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <LoadingLogo />
       </div>
     );
   }
@@ -337,5 +338,3 @@ export default function AuthPage() {
     </div>
   );
 }
-
-    

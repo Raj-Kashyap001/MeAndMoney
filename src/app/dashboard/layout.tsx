@@ -7,7 +7,6 @@ import Link from 'next/link';
 import {
   PanelLeft,
   Search,
-  Loader2
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -19,6 +18,7 @@ import { UserNav } from '@/components/user-nav';
 import { useUser } from '@/firebase';
 import { CurrencyProvider } from '@/components/currency-provider';
 import { NotificationBell } from '@/components/notification-bell';
+import { LoadingLogo } from '@/components/loading-logo';
 
 export default function DashboardLayout({
   children,
@@ -37,7 +37,7 @@ export default function DashboardLayout({
   if (isUserLoading || !user) {
     return (
       <div className="flex h-screen w-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <LoadingLogo />
       </div>
     );
   }
@@ -104,5 +104,3 @@ export default function DashboardLayout({
     </CurrencyProvider>
   );
 }
-
-    
