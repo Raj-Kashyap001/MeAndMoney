@@ -161,6 +161,19 @@ export function AddTransactionDialog({ children }: { children: React.ReactNode }
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="e.g., Coffee with friends" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -200,19 +213,7 @@ export function AddTransactionDialog({ children }: { children: React.ReactNode }
                 )}
               />
             </div>
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="e.g., Coffee with friends" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -247,7 +248,7 @@ export function AddTransactionDialog({ children }: { children: React.ReactNode }
                 control={form.control}
                 name="date"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col">
+                  <FormItem className="flex flex-col pt-2">
                     <FormLabel>Date</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
