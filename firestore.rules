@@ -1,0 +1,128 @@
+/**
+ * @fileoverview Firestore Security Rules for the MeAndMoney application.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model.  Each user has complete control over their own data,
+ * and no access to other users' data. This is achieved through path-based access control and authenticated user IDs.
+ *
+ * Data Structure:
+ * The data is organized hierarchically under `/users/{userId}`, with subcollections for accounts, categories, and transactions.
+ * - /users/{userId}: Stores user profile information.
+ * - /users/{userId}/accounts/{accountId}: Stores financial account information.
+ * - /users/{userId}/categories/{categoryId}: Stores transaction categories.
+ * - /users/{userId}/accounts/{accountId}/transactions/{transactionId}: Stores transaction information for a specific account.
+ *
+ * Key Security Decisions:
+ * - User listing is implicitly denied because there are no rules for the top-level `/users` collection.
+ * - All data is private and requires authentication.
+ * - No custom claims or role-based access control are used.  Authorization is based solely on user ID.
+ *
+ * Denormalization for Authorization:
+ * The data structure is inherently denormalized by embedding the `userId` in the path for each document.
+ * This avoids the need for `get()` calls to verify ownership, making the rules more efficient and secure.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Secure access to user profile information.
+     * @path /users/{userId}
+     * @allow (create) User with matching ID can create their profile.
+     * @allow (get, update, delete) User with matching ID can access and modify their profile.
+     * @deny (create, get, update, delete) Any other user cannot access this data.
+     * @principle Enforces document ownership for writes.
+     */
+    match /users/{userId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if false; // User listing is not permitted
+
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Secure access to user's financial accounts.
+     * @path /users/{userId}/accounts/{accountId}
+     * @allow (create) User with matching ID can create accounts.
+     * @allow (get, list, update, delete) User with matching ID can access and manage their accounts.
+     * @deny (create, get, list, update, delete) Any other user cannot access this data.
+     * @principle Restricts access to a user's own data tree.
+     */
+    match /users/{userId}/accounts/{accountId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Secure access to user's transaction categories.
+     * @path /users/{userId}/categories/{categoryId}
+     * @allow (create) User with matching ID can create categories.
+     * @allow (get, list, update, delete) User with matching ID can access and manage their categories.
+     * @deny (create, get, list, update, delete) Any other user cannot access this data.
+     * @principle Restricts access to a user's own data tree.
+     */
+    match /users/{userId}/categories/{categoryId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Secure access to transaction information for a specific account.
+     * @path /users/{userId}/accounts/{accountId}/transactions/{transactionId}
+     * @allow (create) User with matching ID can create transactions for their accounts.
+     * @allow (get, list, update, delete) User with matching ID can access and manage transactions in their accounts.
+     * @deny (create, get, list, update, delete) Any other user cannot access this data.
+     * @principle Restricts access to a user's own data tree.
+     */
+    match /users/{userId}/accounts/{accountId}/transactions/{transactionId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+
+      allow create: if isOwner(userId) && get(/databases/$(database)/documents/users/$(userId)/accounts/$(accountId)).data.userId == userId && request.resource.data.accountId == accountId;
+      allow update: if isExistingOwner(userId) && get(/databases/$(database)/documents/users/$(userId)/accounts/$(accountId)).data.userId == userId && request.resource.data.accountId == accountId;
+      allow delete: if isExistingOwner(userId) && get(/databases/$(database)/documents/users/$(userId)/accounts/$(accountId)).data.userId == userId;
+    }
+  }
+}

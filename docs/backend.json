@@ -1,0 +1,232 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the MeAndMoney application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "firstName": {
+          "type": "string",
+          "description": "User's first name."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "User's last name."
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "firstName",
+        "lastName"
+      ]
+    },
+    "Account": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Account",
+      "type": "object",
+      "description": "Represents a user's financial account (e.g., bank account, credit card).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Account entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Account)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the account (e.g., Checking, Savings)."
+        },
+        "balance": {
+          "type": "number",
+          "description": "Current balance of the account."
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of account (e.g., bank, cash, card)."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "name",
+        "balance",
+        "type"
+      ]
+    },
+    "Transaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Transaction",
+      "type": "object",
+      "description": "Represents a financial transaction.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Transaction entity."
+        },
+        "accountId": {
+          "type": "string",
+          "description": "Reference to Account. (Relationship: Account 1:N Transaction)"
+        },
+        "categoryId": {
+          "type": "string",
+          "description": "Reference to Category. (Relationship: Category 1:N Transaction)"
+        },
+        "date": {
+          "type": "string",
+          "description": "Date of the transaction.",
+          "format": "date-time"
+        },
+        "amount": {
+          "type": "number",
+          "description": "Amount of the transaction."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the transaction."
+        }
+      },
+      "required": [
+        "id",
+        "accountId",
+        "categoryId",
+        "date",
+        "amount",
+        "description"
+      ]
+    },
+    "Category": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Category",
+      "type": "object",
+      "description": "Represents a category for classifying transactions (e.g., Food, Transportation).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Category entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Category)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the category."
+        },
+        "budgetedAmount": {
+          "type": "number",
+          "description": "Budgeted amount for the category."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "name",
+        "budgetedAmount"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile information. Accessible only by the user with matching userId.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/accounts/{accountId}",
+        "definition": {
+          "entityName": "Account",
+          "schema": {
+            "$ref": "#/backend/entities/Account"
+          },
+          "description": "Stores user's financial account information. Accessible only by the user with matching userId.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "accountId",
+              "description": "The unique identifier of the account."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/categories/{categoryId}",
+        "definition": {
+          "entityName": "Category",
+          "schema": {
+            "$ref": "#/backend/entities/Category"
+          },
+          "description": "Stores user's transaction categories. Accessible only by the user with matching userId.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "categoryId",
+              "description": "The unique identifier of the category."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/accounts/{accountId}/transactions/{transactionId}",
+        "definition": {
+          "entityName": "Transaction",
+          "schema": {
+            "$ref": "#/backend/entities/Transaction"
+          },
+          "description": "Stores transaction information for a specific account. Accessible only by the user with matching userId.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "accountId",
+              "description": "The unique identifier of the account."
+            },
+            {
+              "name": "transactionId",
+              "description": "The unique identifier of the transaction."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging, adhering to the core design principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Rules are not Filters). It leverages Structural Segregation, Access Modeling, and Data Clarity for optimal performance and maintainability.\n\nAuthorization Independence (CRITICAL):  The structure avoids hierarchical authorization dependencies (`get()`).  All authorization data is co-located to a document or denormalized into subcollections. For instance, access to Accounts, Transactions, and Categories is determined solely by the `userId` present in the document itself, not by querying any parent document.  The path-based ownership (e.g., `/users/{userId}/accounts/{accountId}`) inherently ensures that rules can validate `request.auth.uid == userId` without needing to `get()` the user document.  Denormalization isn't explicitly needed here because the paths themselves provide sufficient authorization context.\n\nClarity of Intent (Debuggability): The structure makes the authorization intent explicit through the use of clear, semantic naming conventions and path-based ownership. Each collection's purpose is evident from its name (e.g., `/users/{userId}/accounts` clearly indicates user-owned accounts).\n\nDBAC (No Custom Claims):  The structure relies solely on `request.auth.uid` for authorization, avoiding custom claims. Roles are implicitly derived from ownership of the documents, which the path structure provides.\n\nQAPs (Rules are not Filters): The structure is designed to facilitate secure `list` operations. Because each collection is segregated by user, listing accounts (`/users/{userId}/accounts`) only returns accounts belonging to the authenticated user. The rules only need to verify that `request.auth.uid == userId` to ensure that a user can only access their own accounts. Similar patterns apply to categories and transactions.  No filtering is required in the rules themselves.\n\nInvariants: The structure supports the integrity of ownership, timestamps, and denormalized data. Ownership is enforced through path-based access control. Timestamps are not explicitly modeled in schemas provided, but the structure naturally supports the addition of server timestamps.\n\n**Structural Segregation:**  All documents within a collection share the same security requirements. For example, all documents within `/users/{userId}/accounts` are owned by the user specified in the path.\n\n**Access Modeling:**\n*   Private Data: Path-Based ownership (`/users/{userId}/accounts`).\n*   Use Hierarchical Paths for User-Owned Data: For entities that represent a `User 1:N Entity` relationship (e.g., a `User` has many `Accounts`), prefer path-based ownership like `/users/{userId}/accounts/{accountId}`.\n*   Continue Hierarchy for Nested Data: For entities with nested `1:N` references (e.g., an `Account` has many `Transactions`), continue the path structure: `/users/{userId}/accounts/{accountId}/transactions/{transactionId}`."
+  }
+}
