@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -44,9 +45,11 @@ export default function SettingsPage() {
         setAvatarUrl(parsedSession.avatarUrl);
         setFirstName(parsedSession.name.split(' ')[0] || '');
         setLastName(parsedSession.name.split(' ').slice(1).join(' ') || '');
+      } else {
+        router.push('/login');
       }
     }
-  }, []);
+  }, [router]);
 
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
@@ -56,7 +59,7 @@ export default function SettingsPage() {
       title: 'Logged Out',
       description: 'You have been successfully logged out.',
     });
-    router.push('/');
+    router.push('/login');
   };
 
   const handleNameEditToggle = () => {

@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -30,7 +31,7 @@ export function UserNav() {
       if (session) {
         setUser(JSON.parse(session));
       } else {
-        router.push('/');
+        router.push('/login');
       }
     }
   }
@@ -57,7 +58,7 @@ export function UserNav() {
       title: 'Logged Out',
       description: 'You have been successfully logged out.',
     });
-    router.push('/');
+    router.push('/login');
   };
   
   const getInitials = (name: string) => {
