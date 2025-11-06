@@ -1,4 +1,7 @@
 
+'use client';
+
+import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -13,6 +16,10 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+gsap.registerPlugin(ScrollTrigger);
 
 export default function LandingPage() {
   const heroImage = PlaceHolderImages.find((img) => img.id === 'hero-bg');
@@ -20,6 +27,93 @@ export default function LandingPage() {
   const howItWorks2 = PlaceHolderImages.find((img) => img.id === 'how-it-works-2');
   const howItWorks3 = PlaceHolderImages.find((img) => img.id === 'how-it-works-3');
   const demoPreview = PlaceHolderImages.find((img) => img.id === 'demo-preview');
+  
+  const mainRef = useRef(null);
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      // Animate sections
+      const sections = gsap.utils.toArray('section');
+      sections.forEach((section: any) => {
+        gsap.fromTo(section, 
+          { autoAlpha: 0, y: 50 }, 
+          {
+            autoAlpha: 1, 
+            y: 0, 
+            duration: 0.8,
+            ease: 'power3.out',
+            scrollTrigger: {
+              trigger: section,
+              start: 'top 80%',
+              toggleActions: 'play none none none',
+            }
+          }
+        );
+      });
+      
+      // Hero section specific animations
+       gsap.fromTo(
+        '.hero-content > *',
+        { autoAlpha: 0, y: 30 },
+        {
+          autoAlpha: 1,
+          y: 0,
+          duration: 0.8,
+          ease: 'power3.out',
+          stagger: 0.2,
+          delay: 0.2,
+        }
+      );
+
+       gsap.fromTo(
+        '.hero-image',
+        { autoAlpha: 0, scale: 1.05 },
+        {
+          autoAlpha: 1,
+          scale: 1,
+          duration: 1,
+          ease: 'power3.inOut',
+        }
+      );
+
+
+      // How it works steps
+      gsap.utils.toArray('.how-it-works-step').forEach((step: any) => {
+         const image = step.querySelector('.how-it-works-image');
+         const content = step.querySelector('.how-it-works-content');
+        
+         gsap.fromTo(image, 
+            {autoAlpha: 0, x: -50}, 
+            {
+                autoAlpha: 1, x: 0, duration: 1, ease: 'power3.out',
+                scrollTrigger: { trigger: step, start: 'top 70%'}
+            }
+         );
+
+         if (step.classList.contains('lg:order-last')) {
+           gsap.fromTo(content, 
+             {autoAlpha: 0, x: 50}, 
+             {
+                 autoAlpha: 1, x: 0, duration: 1, ease: 'power3.out',
+                 scrollTrigger: { trigger: step, start: 'top 70%'}
+             }
+           );
+         } else {
+           gsap.fromTo(content, 
+             {autoAlpha: 0, x: 50}, 
+             {
+                 autoAlpha: 1, x: 0, duration: 1, ease: 'power3.out',
+                 scrollTrigger: { trigger: step, start: 'top 70%'}
+             }
+           );
+         }
+      });
+
+
+    }, mainRef);
+
+    return () => ctx.revert();
+  }, []);
 
   const faqItems = [
     {
@@ -58,11 +152,11 @@ export default function LandingPage() {
         </div>
       </header>
 
-      <main>
-        <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32">
+      <main ref={mainRef}>
+        <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid lg:grid-cols-2 gap-12 items-center">
-              <div className="text-center lg:text-left">
+              <div className="text-center lg:text-left hero-content">
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tighter mb-6">
                   Take Control of Your Personal Finances
                 </h1>
@@ -81,7 +175,7 @@ export default function LandingPage() {
                   </Button>
                 </div>
               </div>
-              <div className="relative h-64 sm:h-80 lg:h-full rounded-2xl overflow-hidden shadow-2xl">
+              <div className="relative h-64 sm:h-80 lg:h-full rounded-2xl overflow-hidden shadow-2xl hero-image">
                  {heroImage && (
                   <Image
                     src={heroImage.imageUrl}
@@ -141,39 +235,39 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="space-y-20">
-              <div className="grid lg:grid-cols-2 gap-12 items-center">
+              <div className="grid lg:grid-cols-2 gap-12 items-center how-it-works-step">
                 {howItWorks1 && (
-                  <div className="relative h-80 rounded-2xl overflow-hidden shadow-xl">
+                  <div className="relative h-80 rounded-2xl overflow-hidden shadow-xl how-it-works-image">
                     <Image src={howItWorks1.imageUrl} alt={howItWorks1.description} data-ai-hint={howItWorks1.imageHint} fill className="object-cover" />
                   </div>
                 )}
-                <div>
+                <div className="how-it-works-content">
                   <span className="inline-block px-4 py-2 rounded-full bg-primary/10 text-primary font-semibold mb-4">Step 1</span>
                   <h3 className="text-3xl font-bold mb-4">Create an Account</h3>
                   <p className="text-muted-foreground text-lg">Start by signing up for a free MeAndMoney account. It's quick, easy, and the first step towards financial clarity.</p>
                 </div>
               </div>
-              <div className="grid lg:grid-cols-2 gap-12 items-center">
-                <div className="lg:order-last">
+              <div className="grid lg:grid-cols-2 gap-12 items-center how-it-works-step">
+                <div className="lg:order-last how-it-works-image">
                   {howItWorks2 && (
                     <div className="relative h-80 rounded-2xl overflow-hidden shadow-xl">
                       <Image src={howItWorks2.imageUrl} alt={howItWorks2.description} data-ai-hint={howItWorks2.imageHint} fill className="object-cover" />
                     </div>
                   )}
                 </div>
-                <div>
+                <div className="how-it-works-content">
                   <span className="inline-block px-4 py-2 rounded-full bg-primary/10 text-primary font-semibold mb-4">Step 2</span>
                   <h3 className="text-3xl font-bold mb-4">Track & Budget</h3>
                   <p className="text-muted-foreground text-lg">Your transactions are automatically categorized. Create custom budgets to track your spending and stay on top of your financial health.</p>
                 </div>
               </div>
-              <div className="grid lg:grid-cols-2 gap-12 items-center">
+              <div className="grid lg:grid-cols-2 gap-12 items-center how-it-works-step">
                 {howItWorks3 && (
-                  <div className="relative h-80 rounded-2xl overflow-hidden shadow-xl">
+                  <div className="relative h-80 rounded-2xl overflow-hidden shadow-xl how-it-works-image">
                     <Image src={howItWorks3.imageUrl} alt={howItWorks3.description} data-ai-hint={howItWorks3.imageHint} fill className="object-cover" />
                   </div>
                 )}
-                <div>
+                <div className="how-it-works-content">
                   <span className="inline-block px-4 py-2 rounded-full bg-primary/10 text-primary font-semibold mb-4">Step 3</span>
                   <h3 className="text-3xl font-bold mb-4">Get AI-Powered Insights</h3>
                   <p className="text-muted-foreground text-lg">Our smart AI analyzes your data to give you personalized tips on how to save money, reduce expenses, and achieve your goals faster.</p>
