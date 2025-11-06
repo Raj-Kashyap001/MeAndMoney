@@ -40,7 +40,7 @@ export default function BudgetsPage() {
                   </div>
                    <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Remaining</span>
-                    <span className={cn("font-medium", budget.amount - budget.spent < 0 ? 'text-destructive' : 'text-green-600' )}>
+                    <span className={cn("font-medium", budget.amount - budget.spent < 0 ? 'text-destructive' : 'text-emerald-600' )}>
                         {formatCurrency(budget.amount - budget.spent)}
                     </span>
                   </div>
