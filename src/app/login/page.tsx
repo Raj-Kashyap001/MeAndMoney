@@ -189,7 +189,7 @@ export default function AuthPage() {
        toast({
         variant: 'destructive',
         title: 'Google Sign-In Failed',
-        description: error.message.replace('Firebase: ', '').replace(` (${error.code}).`,''),
+        description: error.message,
       });
     } finally {
       setIsGoogleLoading(false);
