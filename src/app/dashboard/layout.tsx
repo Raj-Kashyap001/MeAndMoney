@@ -25,7 +25,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Logo } from '@/components/logo';
 import { MainNav } from '@/components/main-nav';
 import { UserNav } from '@/components/user-nav';
-import { Separator } from '@/components/ui/separator';
 import { useUser } from '@/firebase';
 
 export default function DashboardLayout({
@@ -51,7 +50,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
+    <div className="grid h-screen w-full overflow-hidden md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
       <div className="hidden border-r bg-card md:block">
         <div className="flex h-full max-h-screen flex-col gap-2">
           <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
@@ -59,7 +58,7 @@ export default function DashboardLayout({
               <Logo />
             </Link>
           </div>
-          <div className="flex-1">
+          <div className="flex-1 overflow-auto py-2">
             <MainNav isCollapsed={false} />
           </div>
         </div>
@@ -85,7 +84,6 @@ export default function DashboardLayout({
                   </Link>
                 </SheetTitle>
               </SheetHeader>
-              <Separator />
               <MainNav isCollapsed={false} />
             </SheetContent>
           </Sheet>
@@ -107,7 +105,7 @@ export default function DashboardLayout({
           </Button>
           <UserNav />
         </header>
-        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background">
+        <main className="flex flex-1 flex-col gap-4 overflow-auto p-4 lg:gap-6 lg:p-6 bg-background">
           {children}
         </main>
       </div>
