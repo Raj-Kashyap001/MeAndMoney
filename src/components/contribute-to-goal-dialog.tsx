@@ -210,7 +210,7 @@ export function ContributeToGoalDialog({ children, goal, open: controlledOpen, o
                     <SelectContent>
                       {accounts?.map((account) => (
                         <SelectItem key={account.id} value={account.id}>
-                          {account.name} ({formatCurrency(account.balance, account.currency)})
+                          {account.name} ({formatCurrency(account.balance, account.currency || currency)})
                         </SelectItem>
                       ))}
                     </SelectContent>
