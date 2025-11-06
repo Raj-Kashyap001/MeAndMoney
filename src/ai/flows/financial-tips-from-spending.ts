@@ -18,6 +18,7 @@ const FinancialTipsInputSchema = z.object({
       'A JSON string containing the user spending data, including categories and amounts.'
     ),
   income: z.number().describe('The user monthly income.'),
+  starredTips: z.array(z.string()).optional().describe('An array of previously starred tips to avoid generating duplicates.'),
 });
 export type FinancialTipsInput = z.infer<typeof FinancialTipsInputSchema>;
 
@@ -36,6 +37,7 @@ const FinancialTipsOutputSchema = z.object({
   tips: z
     .array(TipSchema)
     .describe('An array of personalized financial tips for the user.'),
+  message: z.string().optional().describe('A general message if no specific tips are generated.'),
 });
 export type FinancialTipsOutput = z.infer<typeof FinancialTipsOutputSchema>;
 
@@ -55,6 +57,13 @@ Spending Data: {{{spendingData}}}
 
 Monthly Income: {{{income}}}
 
+{{#if starredTips}}
+The user has already starred these tips, so do not generate tips that are substantially similar to these:
+{{#each starredTips}}
+- "{{this}}"
+{{/each}}
+{{/if}}
+
 Provide a list of actionable tips to help the user reduce spending and improve their financial health. Focus on specific spending categories.
 For each tip, suggest a corresponding action if applicable.
 Actions can be:
@@ -66,7 +75,9 @@ Example actions:
 - A tip about setting a savings goal could have an action to open the 'add_goal' dialog.
 - A tip about cutting spending in a category could link to transactions: '/dashboard/transactions?category=Dining'.
 
-Return a JSON object with a "tips" array. Each object in the array should have a "tip" (string) and an optional "action" object with "type" and "payload".`,
+If you analyze the data and find no significant areas for improvement, or if all potential tips are too similar to the starred tips, return an empty "tips" array and provide a friendly, encouraging message in the "message" field, like "Your financial health looks good! Keep up the great work." or "Based on your current spending, you are doing a great job managing your finances."
+
+Return a JSON object with a "tips" array, and an optional "message". Each object in the "tips" array should have a "tip" (string) and an optional "action" object with "type" and "payload".`,
 });
 
 const financialTipsFlow = ai.defineFlow(
