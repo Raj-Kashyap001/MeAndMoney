@@ -1,8 +1,9 @@
 
 'use client';
 
-import { useMemo } from 'react';
-import { Wallet, TrendingUp, TrendingDown, Target } from 'lucide-react';
+import { useMemo, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Wallet, TrendingUp, TrendingDown, Target, PlusCircle, Star, ArrowRight } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -20,11 +21,48 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useCurrency } from '@/components/currency-provider';
 import { OverviewChart } from '@/components/charts/overview-chart';
 import { SpendingBreakdownChart } from '@/components/charts/spending-breakdown-chart';
+import { Button } from '@/components/ui/button';
+import { AddTransactionDialog } from '@/components/add-transaction-dialog';
+import { AddGoalDialog } from '@/components/add-goal-dialog';
+import type { FinancialTipsOutput } from '@/ai/flows/financial-tips-from-spending';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { AddBudgetDialog } from '@/components/add-budget-dialog';
+
+type Tip = FinancialTipsOutput['tips'][0] & { id: string };
 
 export default function DashboardPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { currency } = useCurrency();
+  const router = useRouter();
+
+  const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false);
+  const [isAddGoalOpen, setIsAddGoalOpen] = useState(false);
+  const [isAddBudgetOpen, setIsAddBudgetOpen] = useState(false);
+  const [starredTips, setStarredTips] = useState<Tip[]>([]);
+
+  useEffect(() => {
+    const storedStarredTips = localStorage.getItem('starredTips');
+    if (storedStarredTips) {
+      setStarredTips(JSON.parse(storedStarredTips));
+    }
+  }, []);
+
+  const handleAction = (tip: Tip) => {
+    if (!tip.action) return;
+
+    const { type, payload } = tip.action;
+    if (type === 'navigate') {
+      router.push(payload.replace('/budgets', '/savings'));
+    } else if (type === 'open_dialog') {
+      if (payload === 'add_budget') {
+        setIsAddBudgetOpen(true);
+      } else if (payload === 'add_goal') {
+        setIsAddGoalOpen(true);
+      }
+    }
+  };
+
 
   const { startOfMonth, startOfLast7Days } = useMemo(() => {
     const now = new Date();
@@ -42,14 +80,9 @@ export default function DashboardPage() {
     user ? query(collection(firestore, `users/${user.uid}/transactions`), where('date', '>=', startOfMonth.toISOString())) : null,
     [firestore, user, startOfMonth]
   );
-  const savingsQuery = useMemoFirebase(() =>
-    user ? query(collection(firestore, `users/${user.uid}/budgets`)) : null,
-    [firestore, user]
-  );
 
   const { data: accounts, isLoading: isLoadingAccounts } = useCollection<Account>(accountsQuery);
   const { data: transactions, isLoading: isLoadingTransactions } = useCollection<Transaction>(transactionsQuery);
-  const { data: savings, isLoading: isLoadingSavings } = useCollection<Saving>(savingsQuery);
 
   const totalBalance = accounts?.reduce((sum, acc) => sum + acc.balance, 0) ?? 0;
   
@@ -140,7 +173,16 @@ export default function DashboardPage() {
 
   return (
     <>
-      <PageHeader title="Dashboard" description={`Here is your financial overview for ${format(new Date(), 'MMMM yyyy')}.`} />
+      <PageHeader title="Dashboard" description={`Here is your financial overview for ${format(new Date(), 'MMMM yyyy')}.`}>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setIsAddTransactionOpen(true)}>
+            <PlusCircle /> Add Transaction
+          </Button>
+          <Button onClick={() => setIsAddGoalOpen(true)}>
+            <PlusCircle /> Add Goal
+          </Button>
+        </div>
+      </PageHeader>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard title="Total Balance" value={formatCurrency(totalBalance, currency)} icon={Wallet} description="Across all accounts" isLoading={isLoadingAccounts} />
         <StatCard title="Income" value={formatCurrency(totalIncome, currency)} icon={TrendingUp} description="This month" isLoading={isLoadingTransactions} />
@@ -167,8 +209,68 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+       {starredTips.length > 0 && (
+        <Card className="lg:col-span-full">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Star className="text-yellow-400" /> Starred Insights
+            </CardTitle>
+            <CardDescription>
+              Your saved collection of financial advice.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tip</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {starredTips.slice(0, 3).map((tip) => (
+                  <TableRow key={tip.id}>
+                    <TableCell>{tip.tip}</TableCell>
+                    <TableCell className="text-right">
+                      {tip.action && (
+                        <Button variant="ghost" size="sm" onClick={() => handleAction(tip)}>
+                          Take Action <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+             {starredTips.length > 3 && (
+                <div className="text-center mt-4">
+                  <Button variant="outline" onClick={() => router.push('/dashboard/insights')}>
+                    View All Starred Tips
+                  </Button>
+                </div>
+              )}
+          </CardContent>
+        </Card>
+      )}
+
+      <AddTransactionDialog 
+        open={isAddTransactionOpen}
+        onOpenChange={setIsAddTransactionOpen}
+      >
+        <span />
+      </AddTransactionDialog>
+
+      <AddGoalDialog 
+        open={isAddGoalOpen}
+        onOpenChange={setIsAddGoalOpen}
+      >
+        <span />
+      </AddGoalDialog>
+      
+      <AddBudgetDialog open={isAddBudgetOpen} onOpenChange={setIsAddBudgetOpen}>
+        <span />
+      </AddBudgetDialog>
     </>
   );
 }
-
-    
