@@ -8,9 +8,9 @@
     },
     {
       "id": "hero-bg",
-      "description": "A person working on their finances on a laptop.",
-      "imageUrl": "https://images.unsplash.com/photo-1554224155-8d04421cd6c3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxmaW5hbmNlfGVufDB8fHx8MTc2MjM5ODg0Mnww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "finance planning"
+      "description": "An illustration of a person managing their finances on a laptop.",
+      "imageUrl": "https://images.unsplash.com/photo-1633114128174-2f8aa49759b0?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "imageHint": "finance growth"
     }
   ]
 }
