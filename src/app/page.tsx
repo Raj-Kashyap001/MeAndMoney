@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/accordion';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -140,7 +141,8 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Logo />
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
               <Button asChild variant="ghost">
                 <Link href="/login">Login</Link>
               </Button>

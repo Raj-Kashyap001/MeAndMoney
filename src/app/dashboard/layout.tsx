@@ -19,6 +19,7 @@ import { useUser } from '@/firebase';
 import { CurrencyProvider } from '@/components/currency-provider';
 import { NotificationBell } from '@/components/notification-bell';
 import { LoadingLogo } from '@/components/loading-logo';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 export default function DashboardLayout({
   children,
@@ -93,6 +94,7 @@ export default function DashboardLayout({
                 </div>
               </form>
             </div>
+            <ThemeToggle />
             <NotificationBell />
             <UserNav />
           </header>
