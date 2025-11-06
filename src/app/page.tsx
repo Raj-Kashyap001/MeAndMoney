@@ -19,10 +19,17 @@ import {
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { useUser, useAuth } from '@/firebase';
+import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
 gsap.registerPlugin(ScrollTrigger);
 
 export default function LandingPage() {
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+  const { toast } = useToast();
+
   const heroImage = PlaceHolderImages.find((img) => img.id === 'hero-bg');
   const howItWorks1 = PlaceHolderImages.find((img) => img.id === 'how-it-works-1');
   const howItWorks2 = PlaceHolderImages.find((img) => img.id === 'how-it-works-2');
@@ -30,6 +37,22 @@ export default function LandingPage() {
   const demoPreview = PlaceHolderImages.find((img) => img.id === 'demo-preview');
   
   const mainRef = useRef(null);
+
+  const handleLogout = async () => {
+    try {
+      await auth.signOut();
+      toast({
+        title: 'Logged Out',
+        description: 'You have been successfully logged out.',
+      });
+    } catch(error) {
+      toast({
+        variant: 'destructive',
+        title: 'Logout Failed',
+        description: 'An error occurred while logging out.',
+      });
+    }
+  };
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -143,12 +166,28 @@ export default function LandingPage() {
             <Logo />
             <div className="flex items-center gap-2">
               <ThemeToggle />
-              <Button asChild variant="ghost">
-                <Link href="/login">Login</Link>
-              </Button>
-              <Button asChild>
-                <Link href="/login?mode=signup">Sign Up</Link>
-              </Button>
+              {isUserLoading ? (
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-9 w-20" />
+                  <Skeleton className="h-9 w-20" />
+                </div>
+              ) : user ? (
+                 <div className="flex items-center gap-2">
+                    <Button asChild variant="outline">
+                        <Link href="/dashboard">Dashboard</Link>
+                    </Button>
+                    <Button onClick={handleLogout}>Logout</Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Button asChild variant="ghost">
+                    <Link href="/login">Login</Link>
+                  </Button>
+                  <Button asChild>
+                    <Link href="/login?mode=signup">Sign Up</Link>
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>
