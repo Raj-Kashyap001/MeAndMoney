@@ -1,13 +1,13 @@
 
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, CheckCircle, PlayCircle } from 'lucide-react';
+import { ArrowRight, CheckCircle, PlayCircle, Menu } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -16,12 +16,14 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useUser, useAuth } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -29,6 +31,7 @@ export default function LandingPage() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const { toast } = useToast();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const heroImage = PlaceHolderImages.find((img) => img.id === 'hero-bg');
   const howItWorks1 = PlaceHolderImages.find((img) => img.id === 'how-it-works-1');
@@ -158,36 +161,78 @@ export default function LandingPage() {
     }
   ];
 
+  const NavButtons = ({ isMobile = false }: { isMobile?: boolean }) => {
+    const commonButtonClass = isMobile ? 'w-full justify-start' : '';
+    const closeMenu = () => setIsMobileMenuOpen(false);
+
+    if (isUserLoading) {
+      return (
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-9 w-20" />
+          <Skeleton className="h-9 w-20" />
+        </div>
+      );
+    }
+    
+    if (user) {
+      return (
+         <div className={`flex gap-2 ${isMobile ? 'flex-col' : ''}`}>
+            <Button asChild variant="outline" className={commonButtonClass} onClick={closeMenu}>
+                <Link href="/dashboard">Dashboard</Link>
+            </Button>
+            <Button onClick={() => { handleLogout(); closeMenu(); }} className={commonButtonClass}>Logout</Button>
+        </div>
+      );
+    }
+
+    return (
+      <div className={`flex gap-2 ${isMobile ? 'flex-col' : ''}`}>
+        <Button asChild variant="ghost" className={commonButtonClass} onClick={closeMenu}>
+          <Link href="/login">Login</Link>
+        </Button>
+        <Button asChild className={commonButtonClass} onClick={closeMenu}>
+          <Link href="/login?mode=signup">Sign Up</Link>
+        </Button>
+      </div>
+    );
+  };
+
   return (
     <div className="bg-background text-foreground min-h-screen">
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Logo />
-            <div className="flex items-center gap-2">
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center gap-2">
               <ThemeToggle />
-              {isUserLoading ? (
-                <div className="flex items-center gap-2">
-                  <Skeleton className="h-9 w-20" />
-                  <Skeleton className="h-9 w-20" />
-                </div>
-              ) : user ? (
-                 <div className="flex items-center gap-2">
-                    <Button asChild variant="outline">
-                        <Link href="/dashboard">Dashboard</Link>
-                    </Button>
-                    <Button onClick={handleLogout}>Logout</Button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Button asChild variant="ghost">
-                    <Link href="/login">Login</Link>
+              <NavButtons />
+            </div>
+            {/* Mobile Navigation */}
+            <div className="md:hidden flex items-center">
+              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <Menu className="h-6 w-6" />
+                    <span className="sr-only">Open menu</span>
                   </Button>
-                  <Button asChild>
-                    <Link href="/login?mode=signup">Sign Up</Link>
-                  </Button>
-                </div>
-              )}
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[280px]">
+                  <SheetHeader>
+                    <SheetTitle><Logo /></SheetTitle>
+                  </SheetHeader>
+                  <div className="flex flex-col h-full py-6">
+                    <div className="flex flex-col gap-4">
+                      <NavButtons isMobile />
+                    </div>
+                    <Separator className="my-6" />
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Switch Theme</span>
+                      <ThemeToggle />
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
             </div>
           </div>
         </div>
@@ -393,3 +438,5 @@ export default function LandingPage() {
     </div>
   );
 }
+
+    
