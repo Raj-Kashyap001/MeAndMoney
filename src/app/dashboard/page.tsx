@@ -183,13 +183,13 @@ export default function DashboardPage() {
           </Button>
         </div>
       </PageHeader>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard title="Total Balance" value={formatCurrency(totalBalance, currency)} icon={Wallet} description="Across all accounts" isLoading={isLoadingAccounts} />
         <StatCard title="Income" value={formatCurrency(totalIncome, currency)} icon={TrendingUp} description="This month" isLoading={isLoadingTransactions} />
         <StatCard title="Expenses" value={formatCurrency(totalExpenses, currency)} icon={TrendingDown} description="This month" isLoading={isLoadingTransactions} />
         <StatCard title="Net Flow" value={formatCurrency(totalIncome - totalExpenses, currency)} icon={Target} description="This month's income minus expenses" isLoading={isLoadingTransactions} />
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+      <div className="grid gap-4 lg:grid-cols-7">
         <Card className="lg:col-span-4">
           <CardHeader>
             <CardTitle>Income vs. Expense</CardTitle>
