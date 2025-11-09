@@ -3,7 +3,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Upload, User, Trash2, KeyRound, LogOut, Pencil, X, Check, Globe, Moon, Sun, Laptop } from 'lucide-react';
+import { Upload, User, Trash2, KeyRound, LogOut, Pencil, X, Check, Globe, Moon, Sun, Laptop, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/page-header';
 import {
@@ -19,7 +19,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { useAuth, useUser, setDocumentNonBlocking, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { sendPasswordResetEmail, deleteUser } from 'firebase/auth';
+import { sendPasswordResetEmail, deleteUser, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -27,6 +27,7 @@ import { useCurrency } from '@/components/currency-provider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTheme } from 'next-themes';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const currencies = [
   { code: 'USD', name: 'United States Dollar' },
@@ -59,6 +60,10 @@ export default function SettingsPage() {
   
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [deleteConfirmationEmail, setDeleteConfirmationEmail] = useState('');
+
+  const [isReAuthOpen, setIsReAuthOpen] = useState(false);
+  const [reAuthPassword, setReAuthPassword] = useState('');
+  const [isReAuthLoading, setIsReAuthLoading] = useState(false);
 
 
   useEffect(() => {
@@ -109,10 +114,39 @@ export default function SettingsPage() {
       toast({ title: 'Account Deleted', description: 'Your account has been permanently deleted.' });
       router.push('/login');
     } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Deletion Failed', description: error.message });
+      if (error.code === 'auth/requires-recent-login') {
+        toast({
+          variant: 'destructive',
+          title: 'Authentication Required',
+          description: 'For security, please re-enter your password to delete your account.',
+        });
+        setIsDeleteAlertOpen(false);
+        setIsReAuthOpen(true);
+      } else {
+        toast({ variant: 'destructive', title: 'Deletion Failed', description: error.message });
+        setIsDeleteAlertOpen(false);
+      }
     } finally {
-      setIsDeleteAlertOpen(false);
       setDeleteConfirmationEmail('');
+    }
+  };
+
+  const handleReAuthAndDelete = async () => {
+    if (!user || !user.email || !reAuthPassword) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Password is required.' });
+      return;
+    }
+    setIsReAuthLoading(true);
+    try {
+      const credential = EmailAuthProvider.credential(user.email, reAuthPassword);
+      await reauthenticateWithCredential(user, credential);
+      await handleDeleteAccount(); // Try deleting again
+      setIsReAuthOpen(false);
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Re-authentication Failed', description: 'The password you entered is incorrect.' });
+    } finally {
+      setIsReAuthLoading(false);
+      setReAuthPassword('');
     }
   };
 
@@ -432,6 +466,38 @@ export default function SettingsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={isReAuthOpen} onOpenChange={setIsReAuthOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Re-authentication Required</DialogTitle>
+                <DialogDescription>
+                    For your security, please enter your password to continue with account deletion.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+                <div className="space-y-2">
+                    <Label htmlFor="reauth-password">Password</Label>
+                    <Input 
+                        id="reauth-password"
+                        type="password"
+                        value={reAuthPassword}
+                        onChange={(e) => setReAuthPassword(e.target.value)}
+                        placeholder="••••••••"
+                    />
+                </div>
+            </div>
+            <DialogFooter>
+                <Button variant="outline" onClick={() => setIsReAuthOpen(false)}>Cancel</Button>
+                <Button variant="destructive" onClick={handleReAuthAndDelete} disabled={isReAuthLoading}>
+                    {isReAuthLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Confirm & Delete
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
+
+    
