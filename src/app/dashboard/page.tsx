@@ -189,7 +189,7 @@ export default function DashboardPage() {
         <StatCard title="Expenses" value={formatCurrency(totalExpenses, currency)} icon={TrendingDown} description="This month" isLoading={isLoadingTransactions} />
         <StatCard title="Net Flow" value={formatCurrency(totalIncome - totalExpenses, currency)} icon={Target} description="This month's income minus expenses" isLoading={isLoadingTransactions} />
       </div>
-      <div className="grid gap-4 lg:grid-cols-7">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-7">
         <Card className="lg:col-span-4">
           <CardHeader>
             <CardTitle>Income vs. Expense</CardTitle>
@@ -211,7 +211,7 @@ export default function DashboardPage() {
       </div>
 
        {starredTips.length > 0 && (
-        <Card className="lg:col-span-full">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Star className="text-yellow-400" /> Starred Insights
@@ -221,30 +221,20 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Tip</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {starredTips.slice(0, 3).map((tip) => (
-                  <TableRow key={tip.id}>
-                    <TableCell>{tip.tip}</TableCell>
-                    <TableCell className="text-right">
+            <div className="space-y-4">
+              {starredTips.slice(0, 3).map((tip) => (
+                  <div key={tip.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 rounded-lg border bg-card hover:bg-muted/50">
+                      <p className="flex-1 mb-2 sm:mb-0">{tip.tip}</p>
                       {tip.action && (
-                        <Button variant="ghost" size="sm" onClick={() => handleAction(tip)}>
+                        <Button variant="ghost" size="sm" onClick={() => handleAction(tip)} className="self-end sm:self-center">
                           Take Action <ArrowRight className="ml-2 h-4 w-4" />
                         </Button>
                       )}
-                    </TableCell>
-                  </TableRow>
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
+            </div>
              {starredTips.length > 3 && (
-                <div className="text-center mt-4">
+                <div className="text-center mt-6">
                   <Button variant="outline" onClick={() => router.push('/dashboard/insights')}>
                     View All Starred Tips
                   </Button>
@@ -274,3 +264,5 @@ export default function DashboardPage() {
     </>
   );
 }
+
+    
